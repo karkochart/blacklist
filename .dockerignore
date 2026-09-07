@@ -1,0 +1,5 @@
+.git
+.idea
+var/cache
+var/log
+node_modules

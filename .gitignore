@@ -1,0 +1,28 @@
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+.phpunit.cache/
+.phpunit.result.cache
+###< phpunit/phpunit ###
+
+###> project ###
+# JetBrains IDE — keep project config out of the repo
+/.idea/
+
+# Local Docker overrides
+/docker-compose.override.yml
+###< project ###
