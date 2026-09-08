@@ -28,8 +28,8 @@ class Driver
     #[ORM\Column(length: 50, nullable: true, unique: true)]
     private ?string $licenseNumber = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTime $birthDate = null;
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $birthDate = null;
 
     #[ORM\ManyToOne(inversedBy: 'drivers')]
     private ?Region $region = null;
@@ -87,12 +87,12 @@ class Driver
         return $this;
     }
 
-    public function getBirthDate(): ?\DateTime
+    public function getBirthDate(): ?\DateTimeImmutable
     {
         return $this->birthDate;
     }
 
-    public function setBirthDate(?\DateTime $birthDate): static
+    public function setBirthDate(?\DateTimeImmutable $birthDate): static
     {
         $this->birthDate = $birthDate;
 

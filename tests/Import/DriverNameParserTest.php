@@ -76,5 +76,25 @@ final class DriverNameParserTest extends TestCase
             'Ахтемов Валерій Аласович Ахтемов Валерий Аласович 04.02.1962',
             ['lastName' => 'Ахтемов', 'firstName' => 'Валерій', 'middleName' => 'Аласович', 'birthDate' => '1962-02-04'],
         ];
+
+        yield 'two-digit year, no patronymic' => [
+            'Зеленецкий Вадим 10.10.74',
+            ['lastName' => 'Зеленецкий', 'firstName' => 'Вадим', 'birthDate' => '1974-10-10'],
+        ];
+
+        yield 'two-digit year glued to "г"' => [
+            'Демьянчук Юрий 12.12.96г',
+            ['lastName' => 'Демьянчук', 'firstName' => 'Юрий', 'birthDate' => '1996-12-12'],
+        ];
+
+        yield 'two-digit year with "г.р."' => [
+            'Охинченко Сергей 10.01.72г.р.',
+            ['lastName' => 'Охинченко', 'firstName' => 'Сергей', 'birthDate' => '1972-01-10'],
+        ];
+
+        yield 'slash separator, implausible year -> date dropped' => [
+            'Васильев Михаил Михайлович / 01.04.22',
+            ['lastName' => 'Васильев', 'firstName' => 'Михаил', 'middleName' => 'Михайлович', 'birthDate' => null],
+        ];
     }
 }

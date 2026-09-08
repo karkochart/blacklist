@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Import\BlacklistImporter;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,14 +19,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class ImportBlacklistCommand extends Command
 {
-    /** Sheet name inside the source workbook (the other sheets are irrelevant). */
-    private const string SHEET_NAME = 'ЧЕРНЫЙ СПИСОК ВОДИТЕЛЕЙ';
-
-    /** First row holds the column titles, data starts at row 2. */
-    private const int FIRST_DATA_ROW = 2;
-
-    public function __construct()
-    {
+    public function __construct(
+        private readonly BlacklistImporter $importer,
+    ) {
         parent::__construct();
     }
 
@@ -49,57 +44,39 @@ final class ImportBlacklistCommand extends Command
             return Command::INVALID;
         }
 
-        $limit = $input->getOption('limit');
-        $limit = $limit === null ? null : max(1, (int) $limit);
+        $limitOption = $input->getOption('limit');
+        $limit = null === $limitOption ? null : max(1, (int) $limitOption);
+        $dryRun = (bool) $input->getOption('dry-run');
 
-        $reader = IOFactory::createReader('Xlsx');
-        $reader->setReadDataOnly(true);
-        $reader->setLoadSheetsOnly([self::SHEET_NAME]);
-        $sheet = $reader->load($file)->getActiveSheet();
+        $io->title(sprintf('Blacklist import%s', $dryRun ? ' (dry run)' : ''));
 
-        $total = 0;
-        $empty = 0;
-        $separators = 0;
-        $data = 0;
+        try {
+            $report = $this->importer->import($file, $dryRun, $limit);
+        } catch (\Throwable $e) {
+            $io->error($e->getMessage());
 
-        foreach ($sheet->getRowIterator(self::FIRST_DATA_ROW) as $row) {
-            $cells = $row->getCellIterator('A', 'D');
-            $cells->setIterateOnlyExistingCells(false);
+            return Command::FAILURE;
+        }
 
-            $values = [];
-            foreach ($cells as $cell) {
-                $values[$cell->getColumn()] = trim((string) $cell->getValue());
-            }
+        $io->definitionList(
+            ['Source' => $file],
+            ['Rows processed' => $report->rowsScanned],
+            ['Drivers created' => $report->driversCreated],
+            ['Blacklist entries created' => $report->blacklistEntriesCreated],
+            ['Skipped (already imported)' => $report->skipped],
+            ['Errors' => \count($report->errors)],
+        );
 
-            $name = $values['C'] ?? '';
-            $isRowEmpty = '' === implode('', $values);
-
-            ++$total;
-            if ($isRowEmpty) {
-                ++$empty;
-            } elseif (mb_strlen($name) <= 1) {
-                // single Cyrillic letter — an alphabet divider in the source, not a person
-                ++$separators;
+        if ([] !== $report->errors) {
+            $io->warning(sprintf('%d row(s) could not be imported.', \count($report->errors)));
+            if ($output->isVerbose()) {
+                $io->listing($report->errors);
             } else {
-                ++$data;
-            }
-
-            if (null !== $limit && $data >= $limit) {
-                break;
+                $io->comment('Re-run with -v to list them.');
             }
         }
 
-        $io->title(sprintf('Blacklist import%s', $input->getOption('dry-run') ? ' (dry run)' : ''));
-        $io->definitionList(
-            ['Source' => $file],
-            ['Sheet' => self::SHEET_NAME],
-            ['Rows scanned' => $total],
-            ['Data rows' => $data],
-            ['Alphabet dividers' => $separators],
-            ['Empty rows' => $empty],
-        );
-
-        $io->success('Sheet read successfully.');
+        $io->success($dryRun ? 'Dry run complete — nothing was written.' : 'Import complete.');
 
         return Command::SUCCESS;
     }

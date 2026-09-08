@@ -18,12 +18,16 @@ final class DriverNameParser
 {
     /**
      * A full date glued to the end of the string, optionally followed by a
-     * "year of birth" marker. Matches the trailing part of:
+     * "year of birth" marker. The year may be 2 or 4 digits. Matches the trailing part of:
      *   "... 23.05.1985", "... 06.09.1988 р.н,", "... 31.05.1966р",
-     *   "... 05.05.2000 г.р.", "...,19.04.1992"
+     *   "... 05.05.2000 г.р.", "...,19.04.1992", "... 10.10.74", "... / 01.04.22"
      */
     private const string BIRTH_DATE_RE =
-        '~[\s,]*(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})\s*(?:р\.?\s?н\.?|г\.?\s?р\.?|р\.?|г\.?)?[.,]?\s*$~u';
+        '~[\s,/]*(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})\s*(?:р\.?\s?н\.?|г\.?\s?р\.?|р\.?|г\.?)?[.,]?\s*$~u';
+
+    /** Youngest / oldest birth year we accept — a rental-car driver is an adult, not a centenarian. */
+    private const int MIN_BIRTH_YEAR = 1930;
+    private const int MAX_BIRTH_YEAR = 2008;
 
     /** A bare 4-digit year at the end: "... 1994", "... 1970 г.р.". */
     private const string BIRTH_YEAR_RE =
@@ -62,22 +66,36 @@ final class DriverNameParser
             return null;
         }
 
-        $date = \DateTimeImmutable::createFromFormat(
-            '!d.m.Y',
-            sprintf('%02d.%02d.%04d', $m[1], $m[2], $m[3]),
-        );
+        // Whatever matched is a date-like token — strip it from the name regardless
+        // of whether it turns out to be a usable birth date.
+        $s = trim((string) preg_replace(self::BIRTH_DATE_RE, '', $s));
+
+        $day = (int) $m[1];
+        $month = (int) $m[2];
+        $year = $this->expandYear((int) $m[3]);
+
+        $date = \DateTimeImmutable::createFromFormat('!d.m.Y', sprintf('%02d.%02d.%04d', $day, $month, $year));
 
         // createFromFormat() silently rolls invalid dates over (30.02 -> 02.03),
-        // so verify it round-trips before trusting it.
+        // so verify it round-trips, and reject implausible birth years.
         if (!$date instanceof \DateTimeImmutable
-            || $date->format('j.n.Y') !== sprintf('%d.%d.%d', (int) $m[1], (int) $m[2], (int) $m[3])
+            || $date->format('j.n.Y') !== sprintf('%d.%d.%d', $day, $month, $year)
+            || $year < self::MIN_BIRTH_YEAR || $year > self::MAX_BIRTH_YEAR
         ) {
             return null;
         }
 
-        $s = trim((string) preg_replace(self::BIRTH_DATE_RE, '', $s));
-
         return $date;
+    }
+
+    /** "74" -> 1974, "05" -> 2005, "1988" -> 1988. Pivot at 30. */
+    private function expandYear(int $year): int
+    {
+        if ($year >= 100) {
+            return $year;
+        }
+
+        return $year >= 30 ? 1900 + $year : 2000 + $year;
     }
 
     private function extractBirthYear(string &$s): ?int
