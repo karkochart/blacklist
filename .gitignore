@@ -25,4 +25,10 @@
 
 # Local Docker overrides
 /docker-compose.override.yml
+
+# Composer home leaked into the project when run as www-data without $HOME
+/.composer/
+
+# Source data for the import command — contains real personal data, never commit
+/var/import/
 ###< project ###

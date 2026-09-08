@@ -16,10 +16,11 @@ abstract class AbstractDriverEvent
     #[ORM\JoinColumn(nullable: false)]
     protected ?Driver $driver = null;
 
-    #[ORM\Column(length: 255)]
+    // Free-text attribution from the source ("who reported it"); may be blank in the data.
+    #[ORM\Column(length: 255, nullable: true)]
     protected ?string $reportedBy = null;
 
-    #[ORM\Column(type: 'text')]
+    #[ORM\Column(type: 'text', nullable: true)]
     protected ?string $text = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
@@ -54,7 +55,7 @@ abstract class AbstractDriverEvent
         return $this->reportedBy;
     }
 
-    public function setReportedBy(string $reportedBy): static
+    public function setReportedBy(?string $reportedBy): static
     {
         $this->reportedBy = $reportedBy;
         return $this;
@@ -65,7 +66,7 @@ abstract class AbstractDriverEvent
         return $this->text;
     }
 
-    public function setText(string $text): static
+    public function setText(?string $text): static
     {
         $this->text = $text;
         return $this;

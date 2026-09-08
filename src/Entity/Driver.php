@@ -23,7 +23,9 @@ class Driver
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $middleName = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
+    // Unique when present; NULL is allowed any number of times
+    // (MySQL/MariaDB/SQLite treat NULLs as distinct in a UNIQUE index).
+    #[ORM\Column(length: 50, nullable: true, unique: true)]
     private ?string $licenseNumber = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]

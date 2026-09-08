@@ -1,4 +1,4 @@
-FROM php:8.4-apache
+FROM php:8.3-apache
 
 # Serve Symfony's public/ dir and allow .htaccess (symfony/apache-pack)
 RUN a2enmod rewrite \
@@ -23,10 +23,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libicu-dev \
         libonig-dev \
         libxml2-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
     && rm -rf /var/lib/apt/lists/* \
     && sed -i 's|www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin|www-data:x:33:33:www-data:/var/www/html:/bin/bash|' /etc/passwd
 
-RUN docker-php-ext-install pdo_mysql intl mbstring bcmath zip opcache
+# gd (with jpeg/freetype) is required by phpoffice/phpspreadsheet
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql intl mbstring bcmath zip opcache gd
 
 # Run PHP/Apache as the host user so bind-mounted files stay editable on both
 # sides (no root-owned var/cache after the container writes to it).
