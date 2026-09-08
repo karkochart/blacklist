@@ -15,6 +15,10 @@ class Region
     #[ORM\Column]
     private ?int $id = null;
 
+    /** Stable business key — ISO 3166-2:UA code, e.g. "UA-51". Used for all external references. */
+    #[ORM\Column(length: 6, unique: true)]
+    private string $code;
+
     #[ORM\Column(length: 255)]
     private ?string $name = null;
 
@@ -32,6 +36,18 @@ class Region
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getCode(): string
+    {
+        return $this->code;
+    }
+
+    public function setCode(string $code): static
+    {
+        $this->code = $code;
+
+        return $this;
     }
 
     public function getName(): ?string
