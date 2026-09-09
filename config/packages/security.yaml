@@ -12,6 +12,12 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        api:
+            # Everything under /api: shared-secret header, no session
+            pattern: ^/api
+            stateless: true
+            custom_authenticators:
+                - App\Security\ApiKeyAuthenticator
         main:
             lazy: true
             provider: users_in_memory
@@ -24,6 +30,8 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
+        # /api is guarded by ApiKeyAuthenticator itself (supports() is always true,
+        # so a missing/invalid key never reaches here — it 401s in the authenticator).
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
 

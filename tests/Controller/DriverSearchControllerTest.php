@@ -7,10 +7,7 @@ namespace App\Tests\Controller;
 use App\Entity\BlacklistEntry;
 use App\Entity\Driver;
 use App\Entity\Region;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\SchemaTool;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Tests\ApiWebTestCase;
 
 /**
  * Functional test for GET /api/drivers/search.
@@ -20,36 +17,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *   - 200 application/json, body is a JSON array of matching drivers
  *   - each driver: id, lastName, firstName, middleName, birthDate, licenseNumber,
  *     region { code, name }, blacklistEntries [ { reportedBy, text, occurredAt, isActive } ]
- *   - missing / blank query -> 200 []
  *   - no match -> 200 []
+ *   (missing / short query -> 422, covered by DriverSearchValidationTest)
  */
-final class DriverSearchControllerTest extends WebTestCase
+final class DriverSearchControllerTest extends ApiWebTestCase
 {
-    private KernelBrowser $client;
-    private EntityManagerInterface $em;
-
-    public static function setUpBeforeClass(): void
-    {
-        self::bootKernel();
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-        $tool = new SchemaTool($em);
-        $metadata = $em->getMetadataFactory()->getAllMetadata();
-        $tool->dropSchema($metadata);
-        $tool->createSchema($metadata);
-        self::ensureKernelShutdown();
-    }
-
     protected function setUp(): void
     {
-        $this->client = static::createClient();
-        $this->em = static::getContainer()->get(EntityManagerInterface::class);
-
-        $connection = $this->em->getConnection();
-        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
-        foreach (['blacklist_entry', 'driver_history_entry', 'driver', 'region'] as $table) {
-            $connection->executeStatement("TRUNCATE TABLE {$table}");
-        }
-        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
+        parent::setUp();
 
         $region = (new Region())->setCode('UA-51')->setName('Odesa Oblast');
 

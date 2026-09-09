@@ -16,6 +16,7 @@
         <server name="APP_ENV" value="test" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="KERNEL_CLASS" value="App\Kernel" />
+        <server name="API_KEY" value="test-secret-key" />
     </php>
 
     <testsuites>
