@@ -17,6 +17,8 @@
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="KERNEL_CLASS" value="App\Kernel" />
         <server name="API_KEY" value="test-secret-key" />
+        <server name="TELEGRAM_BOT_TOKEN" value="test-bot-token" />
+        <server name="TELEGRAM_WEBHOOK_SECRET" value="test-webhook-secret" />
     </php>
 
     <testsuites>

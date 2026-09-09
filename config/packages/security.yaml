@@ -16,8 +16,15 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
+        telegram:
+            # Telegram webhook: its own secret header (X-Telegram-Bot-Api-Secret-Token).
+            # Must be listed before "api" — first matching firewall wins.
+            pattern: ^/api/telegram
+            stateless: true
+            custom_authenticators:
+                - App\Security\TelegramWebhookAuthenticator
         api:
-            # Everything under /api: shared-secret header, no session
+            # Everything else under /api: shared-secret header, no session
             pattern: ^/api
             stateless: true
             custom_authenticators:

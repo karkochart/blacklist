@@ -1,0 +1,7 @@
+framework:
+    http_client:
+        scoped_clients:
+            # Autowire as: HttpClientInterface $telegramClient
+            telegram.client:
+                base_uri: 'https://api.telegram.org/bot%env(TELEGRAM_BOT_TOKEN)%/'
+                timeout: 5

@@ -21,3 +21,10 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        # let functional tests swap the Telegram client for a spy (see TelegramWebhookControllerTest)
+        App\Telegram\TelegramBotApi:
+            alias: App\Telegram\HttpTelegramBotApi
+            public: true
