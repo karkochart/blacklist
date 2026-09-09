@@ -39,7 +39,12 @@ final class AdminAccessTest extends WebTestCase
     {
         $this->client = static::createClient();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
-        $this->em->getConnection()->executeStatement('TRUNCATE TABLE user');
+
+        // user is now referenced by blacklist_entry.reporter_id — disable FK checks to truncate it
+        $connection = $this->em->getConnection();
+        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
+        $connection->executeStatement('TRUNCATE TABLE user');
+        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
 
         $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
 

@@ -1,0 +1,36 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_body %}
+<div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <h1>Regions</h1>
+    <a href="{{ path('admin_region_new') }}">+ New region</a>
+</div>
+
+<table style="border-collapse:collapse; width:100%;">
+    <thead>
+        <tr style="text-align:left; border-bottom:2px solid #ccc;">
+            <th style="padding:6px;">Code</th>
+            <th style="padding:6px;">Name</th>
+            <th style="padding:6px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for region in regions %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:6px;"><code>{{ region.code }}</code></td>
+            <td style="padding:6px;">{{ region.name }}</td>
+            <td style="padding:6px; white-space:nowrap;">
+                <a href="{{ path('admin_region_edit', {id: region.id}) }}">Edit</a>
+                <form method="post" action="{{ path('admin_region_delete', {id: region.id}) }}"
+                      style="display:inline;" onsubmit="return confirm('Delete {{ region.code }}?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-region-' ~ region.id) }}">
+                    <button type="submit" style="border:0; background:none; color:#b91c1c; cursor:pointer;">Delete</button>
+                </form>
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="3" style="padding:6px;">No regions.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

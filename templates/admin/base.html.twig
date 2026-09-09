@@ -7,7 +7,10 @@
     <header style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid #ddd; padding-bottom:8px;">
         <nav style="display:flex; gap:16px;">
             <a href="{{ path('admin_dashboard') }}">Dashboard</a>
-            {# entity CRUD links added in 8b.4 #}
+            <a href="{{ path('admin_region_index') }}">Regions</a>
+            <a href="{{ path('admin_driver_index') }}">Drivers</a>
+            <a href="{{ path('admin_blacklist_entry_index') }}">Blacklist</a>
+            <a href="{{ path('admin_user_index') }}">Users</a>
         </nav>
         <span>
             {{ app.user ? app.user.name : 'guest' }} ·

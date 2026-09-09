@@ -1,0 +1,38 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_body %}
+<div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <h1>Users</h1>
+    <a href="{{ path('admin_user_new') }}">+ New user</a>
+</div>
+
+<table style="border-collapse:collapse; width:100%;">
+    <thead>
+        <tr style="text-align:left; border-bottom:2px solid #ccc;">
+            <th style="padding:6px;">Email</th>
+            <th style="padding:6px;">Name</th>
+            <th style="padding:6px;">Roles</th>
+            <th style="padding:6px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:6px;">{{ user.email }}</td>
+            <td style="padding:6px;">{{ user.name }}</td>
+            <td style="padding:6px;">{{ user.roles|join(', ') }}</td>
+            <td style="padding:6px; white-space:nowrap;">
+                <a href="{{ path('admin_user_edit', {id: user.id}) }}">Edit</a>
+                {% if user != app.user %}
+                    <form method="post" action="{{ path('admin_user_delete', {id: user.id}) }}"
+                          style="display:inline;" onsubmit="return confirm('Delete {{ user.email }}?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete-user-' ~ user.id) }}">
+                        <button type="submit" style="border:0; background:none; color:#b91c1c; cursor:pointer;">Delete</button>
+                    </form>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

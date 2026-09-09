@@ -6,9 +6,12 @@ use App\Repository\RegionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: RegionRepository::class)]
+#[UniqueEntity(fields: ['code'], message: 'This region code is already used.')]
 class Region
 {
     #[ORM\Id]
@@ -19,10 +22,14 @@ class Region
     /** Stable business key — ISO 3166-2:UA code, e.g. "UA-51". Used for all external references. */
     #[ORM\Column(length: 6, unique: true)]
     #[Groups(['driver:list'])]
-    private string $code;
+    #[Assert\NotBlank]
+    #[Assert\Regex(pattern: '/^UA-\d{2}$/', message: 'Expected an ISO 3166-2:UA code like "UA-51".')]
+    private ?string $code = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['driver:list'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $name = null;
 
     /**
@@ -41,7 +48,7 @@ class Region
         return $this->id;
     }
 
-    public function getCode(): string
+    public function getCode(): ?string
     {
         return $this->code;
     }

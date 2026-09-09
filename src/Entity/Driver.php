@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: DriverRepository::class)]
 class Driver
@@ -20,10 +21,14 @@ class Driver
 
     #[ORM\Column(length: 255)]
     #[Groups(['driver:list'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $lastName = null;
 
     #[ORM\Column(length: 255)]
     #[Groups(['driver:list'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -67,6 +72,17 @@ class Driver
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    #[Groups(['driver:list'])]
+    public function getFullName(): string
+    {
+        return trim(implode(' ', array_filter([$this->lastName, $this->firstName, $this->middleName])));
+    }
+
+    public function __toString(): string
+    {
+        return $this->getFullName();
     }
 
     public function getLastName(): ?string

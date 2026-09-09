@@ -1,0 +1,5 @@
+{% extends 'admin/base.html.twig' %}
+{% block admin_body %}
+    <h1>Edit driver {{ driver.id }}</h1>
+    {{ include('admin/driver/_form.html.twig', {button_label: 'Update'}) }}
+{% endblock %}

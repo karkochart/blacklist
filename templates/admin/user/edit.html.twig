@@ -1,0 +1,5 @@
+{% extends 'admin/base.html.twig' %}
+{% block admin_body %}
+    <h1>Edit user {{ user.email }}</h1>
+    {{ include('admin/user/_form.html.twig', {button_label: 'Update'}) }}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_body %}
+<div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <h1>Drivers</h1>
+    <a href="{{ path('admin_driver_new') }}">+ New driver</a>
+</div>
+
+<table style="border-collapse:collapse; width:100%;">
+    <thead>
+        <tr style="text-align:left; border-bottom:2px solid #ccc;">
+            <th style="padding:6px;">FirstName</th>
+            <th style="padding:6px;">LastName</th>
+            <th style="padding:6px;">MiddleName</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for driver in drivers %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:6px;">{{ driver.firstName }}</td>
+            <td style="padding:6px;">{{ driver.lastName }}</td>
+            <td style="padding:6px;">{{ driver.middleName }}</td>
+            <td style="padding:6px; white-space:nowrap;">
+                <a href="{{ path('admin_driver_edit', {id: driver.id}) }}">Edit</a>
+                <form method="post" action="{{ path('admin_driver_delete', {id: driver.id}) }}"
+                      style="display:inline;" onsubmit="return confirm('Delete {{ driver.id }}?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-driver-' ~ driver.id) }}">
+                    <button type="submit" style="border:0; background:none; color:#b91c1c; cursor:pointer;">Delete</button>
+                </form>
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="3" style="padding:6px;">No drivers.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

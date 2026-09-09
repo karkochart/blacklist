@@ -17,7 +17,14 @@ abstract class AbstractDriverEvent
     #[ORM\JoinColumn(nullable: false)]
     protected ?Driver $driver = null;
 
-    // Free-text attribution from the source ("who reported it"); may be blank in the data.
+    // Two ways of saying "who reported this":
+    //  - $reporter : an app user, set for entries created through the admin / API
+    //  - $reportedBy : free text from the original spreadsheet import (dirty nicknames),
+    //                  kept for historical rows where there is no matching account
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    protected ?User $reporter = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['driver:list'])]
     protected ?string $reportedBy = null;
@@ -55,6 +62,17 @@ abstract class AbstractDriverEvent
         return $this;
     }
 
+    public function getReporter(): ?User
+    {
+        return $this->reporter;
+    }
+
+    public function setReporter(?User $reporter): static
+    {
+        $this->reporter = $reporter;
+        return $this;
+    }
+
     public function getReportedBy(): ?string
     {
         return $this->reportedBy;
@@ -64,6 +82,13 @@ abstract class AbstractDriverEvent
     {
         $this->reportedBy = $reportedBy;
         return $this;
+    }
+
+    /** Best available human name for whoever reported this — the account, else the imported text. */
+    #[Groups(['driver:list'])]
+    public function getReporterName(): ?string
+    {
+        return $this->reporter?->getName() ?? $this->reportedBy;
     }
 
     public function getText(): ?string

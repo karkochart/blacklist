@@ -1,0 +1,5 @@
+{% extends 'admin/base.html.twig' %}
+{% block admin_body %}
+    <h1>Edit region {{ region.code }}</h1>
+    {{ include('admin/region/_form.html.twig', {button_label: 'Update'}) }}
+{% endblock %}
