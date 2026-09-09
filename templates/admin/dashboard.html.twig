@@ -1,0 +1,10 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block admin_body %}
+<h1>Dashboard</h1>
+<ul>
+    <li>Drivers: {{ counts.drivers }}</li>
+    <li>Blacklist entries: {{ counts.blacklist_entries }}</li>
+    <li>Regions: {{ counts.regions }}</li>
+</ul>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin{% endblock %}
+
+{% block body %}
+<div style="font-family: system-ui, sans-serif; max-width: 960px; margin: 24px auto;">
+    <header style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid #ddd; padding-bottom:8px;">
+        <nav style="display:flex; gap:16px;">
+            <a href="{{ path('admin_dashboard') }}">Dashboard</a>
+            {# entity CRUD links added in 8b.4 #}
+        </nav>
+        <span>
+            {{ app.user ? app.user.name : 'guest' }} ·
+            <a href="{{ path('app_logout') }}">Logout</a>
+        </span>
+    </header>
+
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <p style="background:#e8f5e9; padding:8px; border-radius:4px;">{{ message }}</p>
+        {% endfor %}
+    {% endfor %}
+
+    <main style="margin-top:16px;">
+        {% block admin_body %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

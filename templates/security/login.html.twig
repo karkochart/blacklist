@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sign in{% endblock %}
+
+{% block body %}
+<style>
+    .login { max-width: 320px; margin: 80px auto; font-family: system-ui, sans-serif; }
+    .login h1 { font-size: 1.3rem; }
+    .login label { display: block; margin: 12px 0 4px; font-size: .85rem; }
+    .login input { width: 100%; padding: 8px; box-sizing: border-box; }
+    .login button { margin-top: 16px; width: 100%; padding: 10px; cursor: pointer; }
+    .login .error { background: #fde8e8; color: #b91c1c; padding: 8px; border-radius: 4px; font-size: .85rem; }
+</style>
+<form class="login" method="post">
+    <h1>Sign in</h1>
+
+    {% if error %}
+        <div class="error">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+    {% endif %}
+
+    <label for="username">Email</label>
+    <input type="email" id="username" name="_username" value="{{ last_username }}" autocomplete="email" required autofocus>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="_password" autocomplete="current-password" required>
+
+    <input type="hidden" name="_csrf_token" data-controller="csrf-protection" value="{{ csrf_token('authenticate') }}">
+
+    <button type="submit">Sign in</button>
+</form>
+{% endblock %}
