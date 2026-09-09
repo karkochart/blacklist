@@ -140,10 +140,7 @@ final class DriverSearchControllerTest extends WebTestCase
         self::assertSame([], $data[0]['blacklistEntries']);
     }
 
-    public function testMissingQueryReturnsEmptyArray(): void
-    {
-        self::assertSame([], $this->search(''));
-    }
+    // Query-parameter validation (missing/short/limit) is covered by DriverSearchValidationTest.
 
     public function testNoMatchReturnsEmptyArray(): void
     {
