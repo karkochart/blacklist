@@ -4,11 +4,13 @@ namespace App\Entity;
 
 use App\Repository\BlacklistEntryRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: BlacklistEntryRepository::class)]
 class BlacklistEntry extends AbstractDriverEvent
 {
     #[ORM\Column]
+    #[Groups(['driver:list'])]
     private bool $isActive = true;
 
     /**

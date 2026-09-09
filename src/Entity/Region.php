@@ -6,6 +6,7 @@ use App\Repository\RegionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: RegionRepository::class)]
 class Region
@@ -17,9 +18,11 @@ class Region
 
     /** Stable business key — ISO 3166-2:UA code, e.g. "UA-51". Used for all external references. */
     #[ORM\Column(length: 6, unique: true)]
+    #[Groups(['driver:list'])]
     private string $code;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['driver:list'])]
     private ?string $name = null;
 
     /**

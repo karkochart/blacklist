@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\MappedSuperclass]
 abstract class AbstractDriverEvent
@@ -18,12 +19,16 @@ abstract class AbstractDriverEvent
 
     // Free-text attribution from the source ("who reported it"); may be blank in the data.
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['driver:list'])]
     protected ?string $reportedBy = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
+
+    #[Groups(['driver:list'])]
     protected ?string $text = null;
 
     #[ORM\Column(type: 'date_immutable', nullable: true)]
+    #[Groups(['driver:list'])]
     protected ?\DateTimeImmutable $occurredAt = null;
 
     #[ORM\Column]
