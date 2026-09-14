@@ -27,33 +27,33 @@ final class SeedRegionsCommand extends Command
      * @var array<string, string>
      */
     private const array REGIONS = [
-        'UA-05' => 'Vinnytsia Oblast',
-        'UA-07' => 'Volyn Oblast',
-        'UA-09' => 'Luhansk Oblast',
-        'UA-12' => 'Dnipropetrovsk Oblast',
-        'UA-14' => 'Donetsk Oblast',
-        'UA-18' => 'Zhytomyr Oblast',
-        'UA-21' => 'Zakarpattia Oblast',
-        'UA-23' => 'Zaporizhzhia Oblast',
-        'UA-26' => 'Ivano-Frankivsk Oblast',
-        'UA-30' => 'Kyiv',
-        'UA-32' => 'Kyiv Oblast',
-        'UA-35' => 'Kirovohrad Oblast',
-        'UA-40' => 'Sevastopol',
-        'UA-43' => 'Autonomous Republic of Crimea',
-        'UA-46' => 'Lviv Oblast',
-        'UA-48' => 'Mykolaiv Oblast',
-        'UA-51' => 'Odesa Oblast',
-        'UA-53' => 'Poltava Oblast',
-        'UA-56' => 'Rivne Oblast',
-        'UA-59' => 'Sumy Oblast',
-        'UA-61' => 'Ternopil Oblast',
-        'UA-63' => 'Kharkiv Oblast',
-        'UA-65' => 'Kherson Oblast',
-        'UA-68' => 'Khmelnytskyi Oblast',
-        'UA-71' => 'Cherkasy Oblast',
-        'UA-74' => 'Chernihiv Oblast',
-        'UA-77' => 'Chernivtsi Oblast',
+        'UA-05' => 'Вінницька область',
+        'UA-07' => 'Волинська область',
+        'UA-09' => 'Луганська область',
+        'UA-12' => 'Дніпропетровська область',
+        'UA-14' => 'Донецька область',
+        'UA-18' => 'Житомирська область',
+        'UA-21' => 'Закарпатська область',
+        'UA-23' => 'Запорізька область',
+        'UA-26' => 'Івано-Франківська область',
+        'UA-30' => 'Київ',
+        'UA-32' => 'Київська область',
+        'UA-35' => 'Кіровоградська область',
+        'UA-40' => 'Севастополь',
+        'UA-43' => 'Автономна Республіка Крим',
+        'UA-46' => 'Львівська область',
+        'UA-48' => 'Миколаївська область',
+        'UA-51' => 'Одеська область',
+        'UA-53' => 'Полтавська область',
+        'UA-56' => 'Рівненська область',
+        'UA-59' => 'Сумська область',
+        'UA-61' => 'Тернопільська область',
+        'UA-63' => 'Харківська область',
+        'UA-65' => 'Херсонська область',
+        'UA-68' => 'Хмельницька область',
+        'UA-71' => 'Черкаська область',
+        'UA-74' => 'Чернігівська область',
+        'UA-77' => 'Чернівецька область',
     ];
 
     public function __construct(
@@ -67,29 +67,37 @@ final class SeedRegionsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        /** @var list<string> $existing */
-        $existing = array_column(
-            $this->regions->createQueryBuilder('r')->select('r.code')->getQuery()->getScalarResult(),
-            'code',
-        );
+        /** @var array<string, Region> $existing */
+        $existing = [];
+        foreach ($this->regions->findAll() as $region) {
+            $existing[$region->getCode()] = $region;
+        }
 
         $created = 0;
+        $renamed = 0;
         foreach (self::REGIONS as $code => $name) {
-            if (\in_array($code, $existing, true)) {
+            $region = $existing[$code] ?? null;
+
+            if ($region === null) {
+                $this->em->persist((new Region())->setCode($code)->setName($name));
+                ++$created;
+
                 continue;
             }
-            $this->em->persist(
-                (new Region())->setCode($code)->setName($name),
-            );
-            ++$created;
+
+            if ($region->getName() !== $name) {
+                $region->setName($name);
+                ++$renamed;
+            }
         }
 
         $this->em->flush();
 
         $io->success(sprintf(
-            '%d region(s) created, %d already present, %d total.',
+            '%d region(s) created, %d renamed, %d unchanged, %d total.',
             $created,
-            \count(self::REGIONS) - $created,
+            $renamed,
+            \count(self::REGIONS) - $created - $renamed,
             \count(self::REGIONS),
         ));
 
