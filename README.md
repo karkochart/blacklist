@@ -41,7 +41,7 @@ Open http://blacklist.localhost/  (direct: http://localhost:8096)
 | containers    | `blacklist-mysql:3306` (compose injects `DATABASE_URL`)                          |
 | host tooling  | `127.0.0.1:13307`                                                                |
 
-Credentials: `blacklist` / `blacklist`, root password `root`, database `blacklist`.
+Credentials: `BlacklistEntry` / `BlacklistEntry`, root password `root`, database `BlacklistEntry`.
 All configurable in `.env`.
 
 ## Adding your Symfony project
