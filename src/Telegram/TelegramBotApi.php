@@ -12,8 +12,8 @@ interface TelegramBotApi
 {
     /**
      * @param string $text HTML-formatted message body (parse_mode=HTML)
-     * @param array{inline_keyboard: list<list<array{text: string, callback_data: string}>>}|null $replyMarkup
-     *        Telegram's InlineKeyboardMarkup shape, or null for no keyboard.
+     * @param array<string, mixed>|null $replyMarkup Any of Telegram's reply_markup shapes
+     *        (InlineKeyboardMarkup, ReplyKeyboardMarkup, ForceReply), or null for none.
      */
     public function sendMessage(int $chatId, string $text, ?array $replyMarkup = null): void;
 

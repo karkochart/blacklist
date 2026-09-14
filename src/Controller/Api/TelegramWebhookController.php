@@ -24,6 +24,12 @@ class TelegramWebhookController extends AbstractController
 {
     private const int PAGE_SIZE = 5;
 
+    private const string BTN_SEARCH = '🔍 Пошук водія';
+    private const string BTN_HELP = 'ℹ️ Довідка';
+
+    private const string HELP_TEXT = "Надішліть прізвище, ім'я або номер посвідчення водія — перевірю чорний список і покажу історію.\n\n"
+        . 'Або натисніть «' . self::BTN_SEARCH . '» знизу.';
+
     #[Route('/api/telegram/webhook', name: 'api_telegram_webhook', methods: ['POST'])]
     public function __invoke(
         Request $request,
@@ -47,8 +53,18 @@ class TelegramWebhookController extends AbstractController
         $chatId = (int) $message['chat']['id'];
         $text = trim((string) $message['text']);
 
-        if (str_starts_with($text, '/start') || str_starts_with($text, '/help')) {
-            $telegram->sendMessage($chatId, 'Send a driver full name or license number to check the blacklist.');
+        if (str_starts_with($text, '/start') || str_starts_with($text, '/help') || $text === self::BTN_HELP) {
+            $telegram->sendMessage($chatId, self::HELP_TEXT, $this->mainKeyboard());
+
+            return new Response('', Response::HTTP_OK);
+        }
+
+        if ($text === self::BTN_SEARCH) {
+            $telegram->sendMessage(
+                $chatId,
+                "Введіть прізвище, ім'я або номер посвідчення водія:",
+                $this->forceReply(),
+            );
 
             return new Response('', Response::HTTP_OK);
         }
@@ -127,6 +143,35 @@ class TelegramWebhookController extends AbstractController
         ];
     }
 
+    /**
+     * Persistent buttons under the input field — stay visible until replaced.
+     * Pressing one just sends its label as a normal text message; we special-case
+     * that label above instead of treating it as a search query.
+     *
+     * @return array{keyboard: list<list<string>>, resize_keyboard: true}
+     */
+    private function mainKeyboard(): array
+    {
+        return [
+            'keyboard' => [[self::BTN_SEARCH], [self::BTN_HELP]],
+            'resize_keyboard' => true,
+        ];
+    }
+
+    /**
+     * Puts the user straight into "reply" mode on the next message — no need to
+     * remember a command, they just type and hit send.
+     *
+     * @return array{force_reply: true, input_field_placeholder: string}
+     */
+    private function forceReply(): array
+    {
+        return [
+            'force_reply' => true,
+            'input_field_placeholder' => "Прізвище, ім'я або № прав",
+        ];
+    }
+
     private function formatDriverHeader(Driver $driver): string
     {
         $activeCount = 0;
@@ -144,8 +189,8 @@ class TelegramWebhookController extends AbstractController
             $lines[] = 'License: ' . htmlspecialchars($driver->getLicenseNumber());
         }
         $lines[] = $activeCount > 0
-            ? sprintf('🚫 %d active blacklist entr%s', $activeCount, $activeCount === 1 ? 'y' : 'ies')
-            : '✅ not on the blacklist';
+            ? sprintf('🚫 %d активн%s запис%s у чорному списку', $activeCount, $activeCount === 1 ? 'ий' : 'их', $activeCount === 1 ? '' : 'и')
+            : '✅ не в чорному списку';
 
         return implode("\n", $lines);
     }
@@ -156,17 +201,17 @@ class TelegramWebhookController extends AbstractController
     private function formatEventsBlock(array $events): string
     {
         if ($events === []) {
-            return 'No history yet.';
+            return 'Історія відсутня.';
         }
 
         $blocks = [];
         foreach ($events as $event) {
-            $kind = $event instanceof BlacklistEntry ? '🚫 Blacklist' : 'ℹ️ History';
+            $kind = $event instanceof BlacklistEntry ? '🚫 Чорний список' : 'ℹ️ Історія';
             $lines = [sprintf('%s — %s', $kind, $event->getCreatedAt()->format('Y-m-d'))];
 
             $reporter = $event->getReporterName();
             if ($reporter !== null) {
-                $lines[] = 'By: ' . htmlspecialchars($reporter);
+                $lines[] = 'Додав: ' . htmlspecialchars($reporter);
             }
 
             $text = $event->getText();
@@ -186,7 +231,7 @@ class TelegramWebhookController extends AbstractController
     private function formatListReply(string $query, array $drivers): string
     {
         if ($drivers === []) {
-            return sprintf('Nothing found for <b>%s</b>.', htmlspecialchars($query));
+            return sprintf("Нічого не знайдено за запитом «%s».", htmlspecialchars($query));
         }
 
         $blocks = [];
@@ -199,12 +244,12 @@ class TelegramWebhookController extends AbstractController
             }
 
             $status = $activeCount > 0
-                ? sprintf('🚫 %d active blacklist entr%s', $activeCount, $activeCount === 1 ? 'y' : 'ies')
-                : '✅ not on the blacklist';
+                ? sprintf('🚫 %d активних записів у ЧС', $activeCount)
+                : '✅ не в чорному списку';
 
             $blocks[] = '<b>' . htmlspecialchars($driver->getFullName()) . '</b> — ' . $status;
         }
 
-        return "Multiple matches, narrow your search (e.g. add license number):\n\n" . implode("\n", $blocks);
+        return "Знайдено декілька водіїв, уточніть запит (напр. додайте номер прав):\n\n" . implode("\n", $blocks);
     }
 }

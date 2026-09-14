@@ -158,6 +158,40 @@ final class TelegramWebhookControllerTest extends WebTestCase
         self::assertCount(1, $this->telegramSpy->sent, 'the bot still answers when nothing is found');
     }
 
+    public function testStartShowsHelpWithMainKeyboard(): void
+    {
+        $this->postUpdate($this->textMessage('/start'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        [, $text, $replyMarkup] = $this->telegramSpy->sent[0];
+
+        self::assertStringContainsString('Пошук водія', $text);
+        self::assertSame([['🔍 Пошук водія'], ['ℹ️ Довідка']], $replyMarkup['keyboard']);
+    }
+
+    public function testHelpButtonReSendsHelp(): void
+    {
+        $this->postUpdate($this->textMessage('ℹ️ Довідка'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        self::assertStringContainsString('Пошук водія', $this->telegramSpy->sent[0][1]);
+    }
+
+    public function testSearchButtonAsksToTypeAQueryInsteadOfSearching(): void
+    {
+        $this->postUpdate($this->textMessage('🔍 Пошук водія'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        [, $text, $replyMarkup] = $this->telegramSpy->sent[0];
+
+        self::assertTrue($replyMarkup['force_reply']);
+        // the button label itself must never be treated as a driver name to search for
+        self::assertStringNotContainsString('Нічого не знайдено', $text);
+    }
+
     public function testUpdateWithoutMessageIsIgnored(): void
     {
         $this->postUpdate(['update_id' => 5, 'edited_message' => ['message_id' => 1]]);
@@ -179,7 +213,7 @@ final class TelegramWebhookControllerTest extends WebTestCase
         [, $text, $replyMarkup] = $this->telegramSpy->sent[0];
 
         self::assertStringContainsString('Иванов', $text);
-        self::assertStringContainsString('🚫 1 active blacklist entry', $text);
+        self::assertStringContainsString('🚫 1 активний запис у чорному списку', $text);
         self::assertStringContainsString('owes 5000', $text);       // the blacklist entry from setUp
         self::assertStringContainsString('warned once', $text);      // the history entry added above
         self::assertNull($replyMarkup, 'only 2 events exist — no "load more" button expected');
