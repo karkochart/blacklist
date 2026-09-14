@@ -110,6 +110,18 @@ final class DriverRepositoryTest extends KernelTestCase
         );
     }
 
+    public function testMatchesFullNameRegardlessOfWordOrder(): void
+    {
+        self::assertSame(['Иванов Иван'], self::names($this->repository->search('Иванов Иван')));
+        self::assertSame(['Иванов Иван'], self::names($this->repository->search('Иван Иванов')));
+    }
+
+    public function testFullNameSearchDoesNotMatchUnrelatedDrivers(): void
+    {
+        // "Иванов Петро" — surname matches Ivanov, but no driver has that first name
+        self::assertSame([], $this->repository->search('Иванов Петро'));
+    }
+
     public function testFindsByLicenseNumber(): void
     {
         self::assertSame(['Сидоров Сергій'], self::names($this->repository->search('abc123456')));

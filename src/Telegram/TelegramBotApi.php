@@ -12,6 +12,14 @@ interface TelegramBotApi
 {
     /**
      * @param string $text HTML-formatted message body (parse_mode=HTML)
+     * @param array{inline_keyboard: list<list<array{text: string, callback_data: string}>>}|null $replyMarkup
+     *        Telegram's InlineKeyboardMarkup shape, or null for no keyboard.
      */
-    public function sendMessage(int $chatId, string $text): void;
+    public function sendMessage(int $chatId, string $text, ?array $replyMarkup = null): void;
+
+    /**
+     * Must be called after handling a callback_query update, or the tapped
+     * button keeps showing a loading spinner on the user's side.
+     */
+    public function answerCallbackQuery(string $callbackQueryId): void;
 }

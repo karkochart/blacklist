@@ -6,6 +6,7 @@ namespace App\Tests\Controller\Api;
 
 use App\Entity\BlacklistEntry;
 use App\Entity\Driver;
+use App\Entity\DriverHistoryEntry;
 use App\Entity\Region;
 use App\Telegram\TelegramBotApi;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,7 +30,7 @@ final class TelegramWebhookControllerTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $em;
 
-    /** @var object{sent: list<array{0:int,1:string}>} */
+    /** @var object{sent: list<array{0:int,1:string,2:array|null}>, answered: list<string>} */
     private object $telegramSpy;
 
     public static function setUpBeforeClass(): void
@@ -65,12 +66,20 @@ final class TelegramWebhookControllerTest extends WebTestCase
         $this->em->clear();
 
         $this->telegramSpy = new class implements TelegramBotApi {
-            /** @var list<array{0:int,1:string}> */
+            /** @var list<array{0:int,1:string,2:array|null}> */
             public array $sent = [];
 
-            public function sendMessage(int $chatId, string $text): void
+            /** @var list<string> */
+            public array $answered = [];
+
+            public function sendMessage(int $chatId, string $text, ?array $replyMarkup = null): void
             {
-                $this->sent[] = [$chatId, $text];
+                $this->sent[] = [$chatId, $text, $replyMarkup];
+            }
+
+            public function answerCallbackQuery(string $callbackQueryId): void
+            {
+                $this->answered[] = $callbackQueryId;
             }
         };
         static::getContainer()->set(TelegramBotApi::class, $this->telegramSpy);
@@ -99,6 +108,19 @@ final class TelegramWebhookControllerTest extends WebTestCase
                 'from' => ['id' => $chatId, 'is_bot' => false, 'first_name' => 'Karen'],
                 'date' => 1_700_000_000,
                 'text' => $text,
+            ],
+        ];
+    }
+
+    private function callbackQuery(string $data, int $chatId = 42, string $callbackId = 'cb-1'): array
+    {
+        return [
+            'update_id' => 2,
+            'callback_query' => [
+                'id' => $callbackId,
+                'from' => ['id' => $chatId, 'is_bot' => false, 'first_name' => 'Karen'],
+                'message' => ['message_id' => 11, 'chat' => ['id' => $chatId, 'type' => 'private']],
+                'data' => $data,
             ],
         ];
     }
@@ -142,5 +164,78 @@ final class TelegramWebhookControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame([], $this->telegramSpy->sent);
+    }
+
+    public function testSingleMatchShowsBlacklistStatusAndRecentHistory(): void
+    {
+        $driver = $this->em->getRepository(Driver::class)->findOneBy(['lastName' => 'Иванов']);
+        $this->em->persist((new DriverHistoryEntry())->setDriver($driver)->setText('warned once')->setReportedBy('Оля'));
+        $this->em->flush();
+
+        $this->postUpdate($this->textMessage('Иванов'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        [, $text, $replyMarkup] = $this->telegramSpy->sent[0];
+
+        self::assertStringContainsString('Иванов', $text);
+        self::assertStringContainsString('🚫 1 active blacklist entry', $text);
+        self::assertStringContainsString('owes 5000', $text);       // the blacklist entry from setUp
+        self::assertStringContainsString('warned once', $text);      // the history entry added above
+        self::assertNull($replyMarkup, 'only 2 events exist — no "load more" button expected');
+    }
+
+    public function testMoreThanFiveEventsShowsLoadMoreButton(): void
+    {
+        $driver = $this->em->getRepository(Driver::class)->findOneBy(['lastName' => 'Иванов']);
+        for ($i = 0; $i < 5; $i++) {
+            $this->em->persist((new DriverHistoryEntry())->setDriver($driver)->setText("note {$i}"));
+        }
+        $this->em->flush();
+        // total events now: 1 (setUp's blacklist entry) + 5 = 6
+
+        $this->postUpdate($this->textMessage('Иванов'));
+
+        [, , $replyMarkup] = $this->telegramSpy->sent[0];
+
+        self::assertNotNull($replyMarkup, '6 events exist — a "load more" button is expected');
+        self::assertSame(
+            sprintf('hist:%d:5', $driver->getId()),
+            $replyMarkup['inline_keyboard'][0][0]['callback_data'],
+        );
+    }
+
+    public function testLoadMoreCallbackSendsNextPageAndAnswersTheQuery(): void
+    {
+        $driver = $this->em->getRepository(Driver::class)->findOneBy(['lastName' => 'Иванов']);
+        for ($i = 0; $i < 5; $i++) {
+            $this->em->persist((new DriverHistoryEntry())->setDriver($driver)->setText("note {$i}"));
+        }
+        $this->em->flush();
+        $driverId = $driver->getId();
+
+        $this->postUpdate($this->callbackQuery(sprintf('hist:%d:5', $driverId), callbackId: 'cb-42'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent, 'exactly one more page (1 leftover event) should be sent');
+        self::assertSame(['cb-42'], $this->telegramSpy->answered);
+        self::assertNull($this->telegramSpy->sent[0][2], 'no more pages left — no button on the last one');
+    }
+
+    public function testMultipleMatchesAreListedWithoutHistory(): void
+    {
+        $region = $this->em->getRepository(Region::class)->findOneBy(['code' => 'UA-51']);
+        $this->em->persist((new Driver())->setLastName('Ивановський')->setFirstName('Петро')->setRegion($region));
+        $this->em->flush();
+
+        $this->postUpdate($this->textMessage('Иванов'));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        [, $text, $replyMarkup] = $this->telegramSpy->sent[0];
+
+        self::assertStringContainsString('Иванов Иван', $text);
+        self::assertStringContainsString('Ивановський Петро', $text);
+        self::assertNull($replyMarkup);
     }
 }

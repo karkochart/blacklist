@@ -20,28 +20,45 @@ final class HttpTelegramBotApi implements TelegramBotApi
     ) {
     }
 
-    public function sendMessage(int $chatId, string $text): void
+    public function sendMessage(int $chatId, string $text, ?array $replyMarkup = null): void
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => true,
+        ];
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $this->call('sendMessage', $payload);
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId): void
+    {
+        $this->call('answerCallbackQuery', ['callback_query_id' => $callbackQueryId]);
+    }
+
+    /**
+     * @param array<string, mixed> $json
+     */
+    private function call(string $method, array $json): void
     {
         try {
-            $response = $this->telegramClient->request('POST', 'sendMessage', [
-                'json' => [
-                    'chat_id' => $chatId,
-                    'text' => $text,
-                    'parse_mode' => 'HTML',
-                    'disable_web_page_preview' => true,
-                ],
-            ]);
+            $response = $this->telegramClient->request('POST', $method, ['json' => $json]);
 
             // Force the request to complete now so failures are logged here, not lazily later.
             if (200 !== $response->getStatusCode()) {
-                $this->logger->error('Telegram sendMessage returned {status}', [
+                $this->logger->error('Telegram {method} returned {status}', [
+                    'method' => $method,
                     'status' => $response->getStatusCode(),
                     'body' => $response->getContent(false),
                 ]);
             }
         } catch (ExceptionInterface $e) {
             // Never let a Telegram outage break the webhook response.
-            $this->logger->error('Telegram sendMessage failed: {message}', ['message' => $e->getMessage()]);
+            $this->logger->error('Telegram {method} failed: {message}', ['method' => $method, 'message' => $e->getMessage()]);
         }
     }
 }
