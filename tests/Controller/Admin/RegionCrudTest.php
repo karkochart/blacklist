@@ -58,7 +58,7 @@ final class RegionCrudTest extends WebTestCase
         $this->client->request('GET', '/admin/regions');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('td', 'UA-51');
+        self::assertSelectorTextContains('.list-group', 'UA-51');
     }
 
     public function testCreateRegion(): void

@@ -6,34 +6,22 @@
     <a href="{{ path('admin_region_new') }}" class="btn btn-primary btn-sm">+ New region</a>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for region in page.items %}
-            <tr>
-                <td><code>{{ region.code }}</code></td>
-                <td>{{ region.name }}</td>
-                <td class="text-end text-nowrap">
-                    <a href="{{ path('admin_region_edit', {id: region.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    <form method="post" action="{{ path('admin_region_delete', {id: region.id}) }}"
-                          class="d-inline" onsubmit="return confirm('Delete {{ region.code }}?')">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete-region-' ~ region.id) }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        {% else %}
-            <tr><td colspan="3" class="text-muted">No regions.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="list-group">
+{% for region in page.items %}
+    <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+        <div><code>{{ region.code }}</code> {{ region.name }}</div>
+        <div class="text-nowrap">
+            <a href="{{ path('admin_region_edit', {id: region.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <form method="post" action="{{ path('admin_region_delete', {id: region.id}) }}"
+                  class="d-inline" onsubmit="return confirm('Delete {{ region.code }}?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete-region-' ~ region.id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+{% else %}
+    <div class="list-group-item text-muted">No regions.</div>
+{% endfor %}
 </div>
 
 {{ include('admin/_load_more.html.twig', {page: page, route: 'admin_region_index'}) }}

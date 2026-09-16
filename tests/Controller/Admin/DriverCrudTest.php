@@ -64,7 +64,7 @@ final class DriverCrudTest extends WebTestCase
         $this->client->request('GET', '/admin/drivers');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('table', 'Иванов');
+        self::assertSelectorTextContains('.list-group', 'Иванов');
     }
 
     public function testCreateDriverDefaultsToOdesaRegion(): void

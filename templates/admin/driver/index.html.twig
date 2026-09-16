@@ -6,36 +6,27 @@
     <a href="{{ path('admin_driver_new') }}" class="btn btn-primary btn-sm">+ New driver</a>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Last name</th>
-                <th>First name</th>
-                <th>Middle name</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for driver in page.items %}
-            <tr>
-                <td>{{ driver.lastName }}</td>
-                <td>{{ driver.firstName }}</td>
-                <td>{{ driver.middleName }}</td>
-                <td class="text-end text-nowrap">
-                    <a href="{{ path('admin_driver_edit', {id: driver.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    <form method="post" action="{{ path('admin_driver_delete', {id: driver.id}) }}"
-                          class="d-inline" onsubmit="return confirm('Delete {{ driver.id }}?')">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete-driver-' ~ driver.id) }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        {% else %}
-            <tr><td colspan="4" class="text-muted">No drivers.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="list-group">
+{% for driver in page.items %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+                <div class="fw-semibold">{{ driver.lastName }} {{ driver.firstName }}</div>
+                {% if driver.middleName %}<div class="small text-muted">{{ driver.middleName }}</div>{% endif %}
+            </div>
+            <div class="text-nowrap">
+                <a href="{{ path('admin_driver_edit', {id: driver.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                <form method="post" action="{{ path('admin_driver_delete', {id: driver.id}) }}"
+                      class="d-inline" onsubmit="return confirm('Delete {{ driver.id }}?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-driver-' ~ driver.id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="list-group-item text-muted">No drivers.</div>
+{% endfor %}
 </div>
 
 {{ include('admin/_load_more.html.twig', {page: page, route: 'admin_driver_index'}) }}

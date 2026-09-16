@@ -6,46 +6,35 @@
     <a href="{{ path('admin_blacklist_entry_new') }}" class="btn btn-primary btn-sm">+ New entry</a>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Driver</th>
-                <th>Reason</th>
-                <th>Reported by</th>
-                <th>When</th>
-                <th>Active</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for entry in page.items %}
-            <tr>
-                <td>{{ entry.driver.fullName }}</td>
-                <td>{{ entry.text|length > 60 ? entry.text[:60] ~ '…' : entry.text }}</td>
-                <td>{{ entry.reporterName }}</td>
-                <td>{{ entry.occurredAt ? entry.occurredAt|date('Y-m-d') : '—' }}</td>
-                <td>
-                    {% if entry.isActive %}
-                        <span class="badge text-bg-danger">yes</span>
-                    {% else %}
-                        <span class="badge text-bg-secondary">no</span>
-                    {% endif %}
-                </td>
-                <td class="text-end text-nowrap">
-                    <a href="{{ path('admin_blacklist_entry_edit', {id: entry.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    <form method="post" action="{{ path('admin_blacklist_entry_delete', {id: entry.id}) }}"
-                          class="d-inline" onsubmit="return confirm('Delete entry #{{ entry.id }}?')">
-                        <input type="hidden" name="_token" value="{{ csrf_token('delete-blacklist-entry-' ~ entry.id) }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        {% else %}
-            <tr><td colspan="6" class="text-muted">No entries.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="list-group">
+{% for entry in page.items %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="fw-semibold">{{ entry.driver.fullName }}</div>
+            <div class="text-nowrap">
+                {% if entry.isActive %}
+                    <span class="badge text-bg-danger">active</span>
+                {% else %}
+                    <span class="badge text-bg-secondary">inactive</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="small my-1">{{ entry.text|length > 140 ? entry.text[:140] ~ '…' : entry.text }}</div>
+        <div class="small text-muted">
+            {{ entry.reporterName }} · {{ entry.occurredAt ? entry.occurredAt|date('Y-m-d') : '—' }}
+        </div>
+        <div class="mt-2">
+            <a href="{{ path('admin_blacklist_entry_edit', {id: entry.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <form method="post" action="{{ path('admin_blacklist_entry_delete', {id: entry.id}) }}"
+                  class="d-inline" onsubmit="return confirm('Delete entry #{{ entry.id }}?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete-blacklist-entry-' ~ entry.id) }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+{% else %}
+    <div class="list-group-item text-muted">No entries.</div>
+{% endfor %}
 </div>
 
 {{ include('admin/_load_more.html.twig', {page: page, route: 'admin_blacklist_entry_index'}) }}
