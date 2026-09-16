@@ -32,8 +32,10 @@ class TelegramWebhookController extends AbstractController
     private const string HELP_TEXT = "Надішліть прізвище, ім'я або номер посвідчення водія — перевірю чорний список і покажу історію.\n\n"
         . 'Або натисніть «' . self::BTN_SEARCH . '» знизу.';
 
-    private const string SUBSCRIPTION_REQUIRED_TEXT = "Пошук доступний тільки за підпискою (щоденною або щомісячною).\n\n"
-        . 'Зверніться до адміністратора, щоб оформити доступ.';
+    private const string ADMIN_CONTACT = '@BakS_vet_lana';
+
+    private const string SUBSCRIPTION_REQUIRED_TEXT = "Пошук доступний тільки за підпискою (щоденною, щомісячною або щорічною).\n\n"
+        . 'Зверніться до ' . self::ADMIN_CONTACT . ', щоб оформити доступ.';
 
     #[Route('/api/telegram/webhook', name: 'api_telegram_webhook', methods: ['POST'])]
     public function __invoke(
