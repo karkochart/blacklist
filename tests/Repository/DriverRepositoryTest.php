@@ -136,4 +136,12 @@ final class DriverRepositoryTest extends KernelTestCase
     {
         self::assertSame([], $this->repository->search('   '));
     }
+
+    public function testCountMatchingMirrorsSearch(): void
+    {
+        self::assertSame(4, $this->repository->countMatching('ов'));
+        self::assertSame(1, $this->repository->countMatching('Иванов'));
+        self::assertSame(0, $this->repository->countMatching('Ковальчук'));
+        self::assertSame(0, $this->repository->countMatching('   '));
+    }
 }

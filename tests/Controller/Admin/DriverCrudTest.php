@@ -49,10 +49,12 @@ final class DriverCrudTest extends WebTestCase
 
         $region = (new Region())->setCode('UA-51')->setName('Odesa Oblast');
         $driver = (new Driver())->setLastName('Иванов')->setFirstName('Иван')->setRegion($region);
+        $other = (new Driver())->setLastName('Петренко')->setFirstName('Петро')->setRegion($region);
 
         $this->em->persist($admin);
         $this->em->persist($region);
         $this->em->persist($driver);
+        $this->em->persist($other);
         $this->em->flush();
         $this->em->clear();
 
@@ -65,6 +67,23 @@ final class DriverCrudTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.list-group', 'Иванов');
+    }
+
+    public function testSearchFiltersToMatchingDriverOnly(): void
+    {
+        $crawler = $this->client->request('GET', '/admin/drivers', ['q' => 'Иванов']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.list-group', 'Иванов');
+        self::assertSelectorTextNotContains('.list-group', 'Петренко');
+        self::assertSame('Иванов', $crawler->filter('input[name="q"]')->attr('value'));
+    }
+
+    public function testSearchWithNoMatchesShowsEmptyMessage(): void
+    {
+        $this->client->request('GET', '/admin/drivers', ['q' => 'Ковальчук']);
+
+        self::assertSelectorTextContains('.list-group', 'Нічого не знайдено.');
     }
 
     public function testCreateDriverDefaultsToOdesaRegion(): void

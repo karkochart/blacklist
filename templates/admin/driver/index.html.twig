@@ -6,6 +6,8 @@
     <a href="{{ path('admin_driver_new') }}" class="btn btn-primary btn-sm">+ New driver</a>
 </div>
 
+{{ include('admin/_search_box.html.twig', {route: 'admin_driver_index', q: q, placeholder: "Прізвище, ім'я або № прав"}) }}
+
 <div class="list-group">
 {% for driver in page.items %}
     <div class="list-group-item">
@@ -25,9 +27,9 @@
         </div>
     </div>
 {% else %}
-    <div class="list-group-item text-muted">No drivers.</div>
+    <div class="list-group-item text-muted">{{ q ? 'Нічого не знайдено.' : 'No drivers.' }}</div>
 {% endfor %}
 </div>
 
-{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_driver_index'}) }}
+{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_driver_index', extra: q ? {q: q} : {}}) }}
 {% endblock %}

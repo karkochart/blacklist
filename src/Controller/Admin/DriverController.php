@@ -23,8 +23,18 @@ final class DriverController extends AbstractController
     #[Route('', name: 'admin_driver_index', methods: ['GET'])]
     public function index(Request $request, DriverRepository $drivers, LoadMorePaginator $paginator): Response
     {
+        $q = trim((string) $request->query->get('q', ''));
+
+        if ($q !== '') {
+            $limit = $paginator->limitFromRequest($request);
+            $page = $paginator->fromResults($drivers->search($q, $limit), $drivers->countMatching($q), $limit);
+        } else {
+            $page = $paginator->paginate($drivers, $request, ['id' => 'DESC']);
+        }
+
         return $this->render('admin/driver/index.html.twig', [
-            'page' => $paginator->paginate($drivers, $request, ['id' => 'DESC']),
+            'page' => $page,
+            'q' => $q,
         ]);
     }
 

@@ -23,14 +23,28 @@ final class LoadMorePaginator
      */
     public function paginate(EntityRepository $repository, Request $request, array $orderBy): LoadMorePage
     {
-        $limit = $request->query->getInt('show', self::DEFAULT_LIMIT);
-        if ($limit < self::DEFAULT_LIMIT) {
-            $limit = self::DEFAULT_LIMIT;
-        }
-
+        $limit = $this->limitFromRequest($request);
         $total = $repository->count([]);
         $items = $repository->findBy([], $orderBy, $limit);
 
         return new LoadMorePage($items, $total, $limit, self::STEP);
+    }
+
+    /**
+     * For a repository's own search()/countMatching() pair instead of the plain
+     * "list everything" case above — same "show" query param, same step.
+     *
+     * @param list<object> $items
+     */
+    public function fromResults(array $items, int $total, int $limit): LoadMorePage
+    {
+        return new LoadMorePage($items, $total, $limit, self::STEP);
+    }
+
+    public function limitFromRequest(Request $request): int
+    {
+        $limit = $request->query->getInt('show', self::DEFAULT_LIMIT);
+
+        return $limit < self::DEFAULT_LIMIT ? self::DEFAULT_LIMIT : $limit;
     }
 }

@@ -23,8 +23,18 @@ final class BlacklistEntryController extends AbstractController
     #[Route('', name: 'admin_blacklist_entry_index', methods: ['GET'])]
     public function index(Request $request, BlacklistEntryRepository $entries, LoadMorePaginator $paginator): Response
     {
+        $q = trim((string) $request->query->get('q', ''));
+
+        if ($q !== '') {
+            $limit = $paginator->limitFromRequest($request);
+            $page = $paginator->fromResults($entries->search($q, $limit), $entries->countMatching($q), $limit);
+        } else {
+            $page = $paginator->paginate($entries, $request, ['id' => 'DESC']);
+        }
+
         return $this->render('admin/blacklist_entry/index.html.twig', [
-            'page' => $paginator->paginate($entries, $request, ['id' => 'DESC']),
+            'page' => $page,
+            'q' => $q,
         ]);
     }
 

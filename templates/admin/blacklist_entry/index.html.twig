@@ -6,6 +6,8 @@
     <a href="{{ path('admin_blacklist_entry_new') }}" class="btn btn-primary btn-sm">+ New entry</a>
 </div>
 
+{{ include('admin/_search_box.html.twig', {route: 'admin_blacklist_entry_index', q: q, placeholder: "Водій, № прав або текст запису"}) }}
+
 <div class="list-group">
 {% for entry in page.items %}
     <div class="list-group-item">
@@ -33,9 +35,9 @@
         </div>
     </div>
 {% else %}
-    <div class="list-group-item text-muted">No entries.</div>
+    <div class="list-group-item text-muted">{{ q ? 'Нічого не знайдено.' : 'No entries.' }}</div>
 {% endfor %}
 </div>
 
-{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_blacklist_entry_index'}) }}
+{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_blacklist_entry_index', extra: q ? {q: q} : {}}) }}
 {% endblock %}

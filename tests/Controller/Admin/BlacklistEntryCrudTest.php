@@ -19,6 +19,7 @@ final class BlacklistEntryCrudTest extends WebTestCase
     private KernelBrowser $client;
     private EntityManagerInterface $em;
     private int $driverId;
+    private int $otherDriverId;
 
     public static function setUpBeforeClass(): void
     {
@@ -48,15 +49,45 @@ final class BlacklistEntryCrudTest extends WebTestCase
 
         $region = (new Region())->setCode('UA-51')->setName('Odesa Oblast');
         $driver = (new Driver())->setLastName('Иванов')->setFirstName('Иван')->setRegion($region);
+        $other = (new Driver())->setLastName('Петренко')->setFirstName('Петро')->setRegion($region);
 
         $this->em->persist($admin);
         $this->em->persist($region);
         $this->em->persist($driver);
+        $this->em->persist($other);
         $this->em->flush();
         $this->driverId = $driver->getId();
+        $this->otherDriverId = $other->getId();
         $this->em->clear();
 
         $this->client->loginUser($this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']));
+    }
+
+    public function testSearchFiltersToMatchingDriverOnly(): void
+    {
+        $ivanovEntry = (new BlacklistEntry())
+            ->setDriver($this->em->getReference(Driver::class, $this->driverId))
+            ->setText('owes 5000');
+        $petrenkoEntry = (new BlacklistEntry())
+            ->setDriver($this->em->getReference(Driver::class, $this->otherDriverId))
+            ->setText('damaged bumper');
+        $this->em->persist($ivanovEntry);
+        $this->em->persist($petrenkoEntry);
+        $this->em->flush();
+
+        $crawler = $this->client->request('GET', '/admin/blacklist', ['q' => 'Иванов']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.list-group', 'owes 5000');
+        self::assertSelectorTextNotContains('.list-group', 'damaged bumper');
+        self::assertSame('Иванов', $crawler->filter('input[name="q"]')->attr('value'));
+    }
+
+    public function testSearchWithNoMatchesShowsEmptyMessage(): void
+    {
+        $this->client->request('GET', '/admin/blacklist', ['q' => 'Ковальчук']);
+
+        self::assertSelectorTextContains('.list-group', 'Нічого не знайдено.');
     }
 
     public function testCreateEntrySetsReporterToCurrentUser(): void

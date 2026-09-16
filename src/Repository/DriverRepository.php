@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Entity\Driver;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -30,15 +31,39 @@ class DriverRepository extends ServiceEntityRepository
      */
     public function search(string $term, int $limit = 50): array
     {
-        $words = preg_split('/\s+/', trim($term), -1, PREG_SPLIT_NO_EMPTY);
-        if ($words === []) {
+        if (null === $qb = $this->matchingQueryBuilder($term)) {
             return [];
         }
 
-        $qb = $this->createQueryBuilder('d')
+        return $qb
             ->orderBy('d.lastName', 'ASC')
             ->addOrderBy('d.firstName', 'ASC')
-            ->setMaxResults($limit);
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Same matching rules as search(), just a count — used to know whether a
+     * "show more" link is worth showing on an admin search results page.
+     */
+    public function countMatching(string $term): int
+    {
+        if (null === $qb = $this->matchingQueryBuilder($term)) {
+            return 0;
+        }
+
+        return (int) $qb->select('COUNT(d.id)')->getQuery()->getSingleScalarResult();
+    }
+
+    private function matchingQueryBuilder(string $term): ?QueryBuilder
+    {
+        $words = preg_split('/\s+/', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+        if ($words === []) {
+            return null;
+        }
+
+        $qb = $this->createQueryBuilder('d');
 
         foreach ($words as $i => $word) {
             // treat %, _ and \ from user input as literals, not LIKE wildcards
@@ -49,31 +74,6 @@ class DriverRepository extends ServiceEntityRepository
             ))->setParameter("term{$i}", $pattern);
         }
 
-        return $qb->getQuery()->getResult();
+        return $qb;
     }
-
-    //    /**
-    //     * @return Driver[] Returns an array of Driver objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('d')
-    //            ->andWhere('d.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('d.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?Driver
-    //    {
-    //        return $this->createQueryBuilder('d')
-    //            ->andWhere('d.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
 }

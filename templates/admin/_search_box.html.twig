@@ -1,0 +1,10 @@
+{# Expects: route, q (current query, may be empty), placeholder #}
+<form method="get" action="{{ path(route) }}" class="mb-3">
+    <div class="input-group" style="max-width: 480px;">
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="{{ placeholder }}">
+        <button type="submit" class="btn btn-outline-secondary">Пошук</button>
+        {% if q %}
+            <a href="{{ path(route) }}" class="btn btn-outline-secondary" title="Скинути пошук">✕</a>
+        {% endif %}
+    </div>
+</form>
