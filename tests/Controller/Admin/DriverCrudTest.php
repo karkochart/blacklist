@@ -49,7 +49,7 @@ final class DriverCrudTest extends WebTestCase
 
         $region = (new Region())->setCode('UA-51')->setName('Odesa Oblast');
         $driver = (new Driver())->setLastName('Иванов')->setFirstName('Иван')->setRegion($region);
-        $other = (new Driver())->setLastName('Петренко')->setFirstName('Петро')->setRegion($region);
+        $other = (new Driver())->setLastName('Бондаренко')->setFirstName('Тарас')->setRegion($region);
 
         $this->em->persist($admin);
         $this->em->persist($region);
@@ -75,7 +75,7 @@ final class DriverCrudTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.list-group', 'Иванов');
-        self::assertSelectorTextNotContains('.list-group', 'Петренко');
+        self::assertSelectorTextNotContains('.list-group', 'Бондаренко');
         self::assertSame('Иванов', $crawler->filter('input[name="q"]')->attr('value'));
     }
 
@@ -129,7 +129,9 @@ final class DriverCrudTest extends WebTestCase
     {
         $id = $this->em->getRepository(Driver::class)->findOneBy(['lastName' => 'Иванов'])->getId();
 
-        $this->client->request('GET', '/admin/drivers');
+        // narrow to one row via search — two drivers now exist, and submitForm()
+        // would otherwise click whichever "Delete" button happens to render first
+        $this->client->request('GET', '/admin/drivers', ['q' => 'Иванов']);
         $this->client->submitForm('Delete');
 
         self::assertResponseRedirects('/admin/drivers');

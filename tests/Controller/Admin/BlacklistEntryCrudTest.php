@@ -49,7 +49,7 @@ final class BlacklistEntryCrudTest extends WebTestCase
 
         $region = (new Region())->setCode('UA-51')->setName('Odesa Oblast');
         $driver = (new Driver())->setLastName('Иванов')->setFirstName('Иван')->setRegion($region);
-        $other = (new Driver())->setLastName('Петренко')->setFirstName('Петро')->setRegion($region);
+        $other = (new Driver())->setLastName('Бондаренко')->setFirstName('Тарас')->setRegion($region);
 
         $this->em->persist($admin);
         $this->em->persist($region);
@@ -68,11 +68,11 @@ final class BlacklistEntryCrudTest extends WebTestCase
         $ivanovEntry = (new BlacklistEntry())
             ->setDriver($this->em->getReference(Driver::class, $this->driverId))
             ->setText('owes 5000');
-        $petrenkoEntry = (new BlacklistEntry())
+        $otherEntry = (new BlacklistEntry())
             ->setDriver($this->em->getReference(Driver::class, $this->otherDriverId))
             ->setText('damaged bumper');
         $this->em->persist($ivanovEntry);
-        $this->em->persist($petrenkoEntry);
+        $this->em->persist($otherEntry);
         $this->em->flush();
 
         $crawler = $this->client->request('GET', '/admin/blacklist', ['q' => 'Иванов']);
