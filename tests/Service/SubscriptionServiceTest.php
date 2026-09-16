@@ -65,6 +65,22 @@ final class SubscriptionServiceTest extends KernelTestCase
         );
     }
 
+    public function testGrantingAYearlySubscriptionMakesItActive(): void
+    {
+        $user = new TelegramUser(6);
+        $this->em->persist($user);
+        $this->em->flush();
+
+        $subscription = $this->subscriptions->grant($user, SubscriptionType::YEARLY);
+
+        self::assertTrue($this->subscriptions->isActive($user));
+        self::assertEqualsWithDelta(
+            (new \DateTimeImmutable('+1 year'))->getTimestamp(),
+            $subscription->getExpiresAt()->getTimestamp(),
+            5,
+        );
+    }
+
     public function testGrantingWhileAlreadySubscribedExtendsFromCurrentExpiryNotNow(): void
     {
         $user = new TelegramUser(3);

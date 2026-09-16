@@ -8,12 +8,14 @@ enum SubscriptionType: string
 {
     case DAILY = 'daily';
     case MONTHLY = 'monthly';
+    case YEARLY = 'yearly';
 
     public function duration(): \DateInterval
     {
         return new \DateInterval(match ($this) {
             self::DAILY => 'P1D',
             self::MONTHLY => 'P1M',
+            self::YEARLY => 'P1Y',
         });
     }
 
@@ -22,6 +24,7 @@ enum SubscriptionType: string
         return match ($this) {
             self::DAILY => 'Щоденна',
             self::MONTHLY => 'Щомісячна',
+            self::YEARLY => 'Щорічна',
         };
     }
 }
