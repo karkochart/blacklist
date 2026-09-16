@@ -8,6 +8,9 @@ use App\Entity\BlacklistEntry;
 use App\Entity\Driver;
 use App\Entity\DriverHistoryEntry;
 use App\Entity\Region;
+use App\Entity\Subscription;
+use App\Entity\TelegramUser;
+use App\Enum\SubscriptionType;
 use App\Telegram\TelegramBotApi;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -46,11 +49,14 @@ final class TelegramWebhookControllerTest extends WebTestCase
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        // KernelBrowser reboots (fresh container) before every request() by default,
+        // which would drop our TelegramBotApi spy on a test's second postUpdate() call.
+        $this->client->disableReboot();
         $this->em = static::getContainer()->get(EntityManagerInterface::class);
 
         $connection = $this->em->getConnection();
         $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
-        foreach (['blacklist_entry', 'driver_history_entry', 'driver', 'region', 'user'] as $table) {
+        foreach (['subscription', 'telegram_user', 'blacklist_entry', 'driver_history_entry', 'driver', 'region', 'user'] as $table) {
             $connection->executeStatement("TRUNCATE TABLE {$table}");
         }
         $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
@@ -59,9 +65,22 @@ final class TelegramWebhookControllerTest extends WebTestCase
         $ivanov = (new Driver())->setLastName('Иванов')->setFirstName('Иван')->setRegion($region);
         $entry = (new BlacklistEntry())->setDriver($ivanov)->setText('owes 5000')->setReportedBy('Денис');
 
+        // The default sender (chatId/from.id 42, see textMessage()) has an active
+        // subscription so the existing search-behaviour tests don't all need to
+        // grant one themselves — the no-subscription case gets its own tests below.
+        $subscriber = new TelegramUser(42);
+        $subscription = new Subscription(
+            $subscriber,
+            SubscriptionType::MONTHLY,
+            new \DateTimeImmutable('-1 day'),
+            new \DateTimeImmutable('+29 days'),
+        );
+
         $this->em->persist($region);
         $this->em->persist($ivanov);
         $this->em->persist($entry);
+        $this->em->persist($subscriber);
+        $this->em->persist($subscription);
         $this->em->flush();
         $this->em->clear();
 
@@ -254,6 +273,67 @@ final class TelegramWebhookControllerTest extends WebTestCase
         self::assertCount(1, $this->telegramSpy->sent, 'exactly one more page (1 leftover event) should be sent');
         self::assertSame(['cb-42'], $this->telegramSpy->answered);
         self::assertNull($this->telegramSpy->sent[0][2], 'no more pages left — no button on the last one');
+    }
+
+    public function testFirstContactRegistersATelegramUser(): void
+    {
+        $this->postUpdate($this->textMessage('/start', chatId: 999));
+
+        $user = $this->em->getRepository(TelegramUser::class)->findOneBy(['telegramId' => 999]);
+        self::assertNotNull($user);
+        self::assertSame('Karen', $user->getFirstName());
+    }
+
+    public function testSearchIsBlockedWithoutActiveSubscription(): void
+    {
+        // a fresh chat id — no Subscription row for it, unlike the 42 fixture in setUp()
+        $this->postUpdate($this->textMessage('Иванов', chatId: 777));
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $this->telegramSpy->sent);
+        [, $text] = $this->telegramSpy->sent[0];
+
+        self::assertStringContainsString('підписк', $text);
+        self::assertStringNotContainsString('owes 5000', $text, 'no driver data must leak without a subscription');
+
+        // and it still registered them — being unauthorized to search doesn't mean unidentified
+        self::assertNotNull($this->em->getRepository(TelegramUser::class)->findOneBy(['telegramId' => 777]));
+    }
+
+    public function testExpiredSubscriptionAlsoBlocksSearch(): void
+    {
+        $user = new TelegramUser(555);
+        $lapsed = new Subscription($user, SubscriptionType::DAILY, new \DateTimeImmutable('-2 days'), new \DateTimeImmutable('-1 day'));
+        $this->em->persist($user);
+        $this->em->persist($lapsed);
+        $this->em->flush();
+
+        $this->postUpdate($this->textMessage('Иванов', chatId: 555));
+
+        self::assertStringContainsString('підписк', $this->telegramSpy->sent[0][1]);
+    }
+
+    public function testHelpAndButtonsWorkWithoutAnySubscription(): void
+    {
+        $this->postUpdate($this->textMessage('/start', chatId: 777));
+        $this->postUpdate($this->textMessage('🔍 Пошук водія', chatId: 777));
+
+        self::assertCount(2, $this->telegramSpy->sent);
+        self::assertStringContainsString('Пошук водія', $this->telegramSpy->sent[0][1]);
+        self::assertTrue($this->telegramSpy->sent[1][2]['force_reply']);
+    }
+
+    public function testLoadMoreCallbackIsBlockedIfSubscriptionLapsedSinceTheInitialCard(): void
+    {
+        $driver = $this->em->getRepository(Driver::class)->findOneBy(['lastName' => 'Иванов']);
+
+        // chat 321 never had a subscription at all — same effect as one that expired
+        // between the initial search and this tap, just simpler to set up
+        $this->postUpdate($this->callbackQuery(sprintf('hist:%d:5', $driver->getId()), chatId: 321, callbackId: 'cb-99'));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->telegramSpy->sent, 'no page should be sent without an active subscription');
+        self::assertSame(['cb-99'], $this->telegramSpy->answered, 'the tap must still be acknowledged, or the button spins forever');
     }
 
     public function testMultipleMatchesAreListedWithoutHistory(): void

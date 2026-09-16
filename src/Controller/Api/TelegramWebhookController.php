@@ -9,6 +9,8 @@ use App\Entity\BlacklistEntry;
 use App\Entity\Driver;
 use App\Repository\DriverRepository;
 use App\Service\DriverEventFeed;
+use App\Service\SubscriptionService;
+use App\Service\TelegramAuth;
 use App\Telegram\TelegramBotApi;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,25 +32,35 @@ class TelegramWebhookController extends AbstractController
     private const string HELP_TEXT = "Надішліть прізвище, ім'я або номер посвідчення водія — перевірю чорний список і покажу історію.\n\n"
         . 'Або натисніть «' . self::BTN_SEARCH . '» знизу.';
 
+    private const string SUBSCRIPTION_REQUIRED_TEXT = "Пошук доступний тільки за підпискою (щоденною або щомісячною).\n\n"
+        . 'Зверніться до адміністратора, щоб оформити доступ.';
+
     #[Route('/api/telegram/webhook', name: 'api_telegram_webhook', methods: ['POST'])]
     public function __invoke(
         Request $request,
         DriverRepository $drivers,
         DriverEventFeed $feed,
         TelegramBotApi $telegram,
+        TelegramAuth $auth,
+        SubscriptionService $subscriptions,
     ): Response {
         $update = json_decode($request->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         if (isset($update['callback_query']) && is_array($update['callback_query'])) {
-            $this->handleCallbackQuery($update['callback_query'], $drivers, $feed, $telegram);
+            $this->handleCallbackQuery($update['callback_query'], $drivers, $feed, $telegram, $auth, $subscriptions);
 
             return new Response('', Response::HTTP_OK);
         }
 
         $message = $update['message'] ?? null;
-        if (!is_array($message) || !isset($message['text'], $message['chat']['id'])) {
+        if (!is_array($message) || !isset($message['text'], $message['chat']['id'], $message['from']) || !is_array($message['from'])) {
             return new Response('', Response::HTTP_OK);   // ack и игнор — не наш тип апдейта
         }
+
+        // Every contact registers the sender — this is the "authorization" the bot
+        // does: identify by Telegram id, unconditionally. It says nothing about
+        // whether they're allowed to search; that's Subscription's call below.
+        $telegramUser = $auth->identify($message['from']);
 
         $chatId = (int) $message['chat']['id'];
         $text = trim((string) $message['text']);
@@ -69,6 +81,12 @@ class TelegramWebhookController extends AbstractController
             return new Response('', Response::HTTP_OK);
         }
 
+        if (!$subscriptions->isActive($telegramUser)) {
+            $telegram->sendMessage($chatId, self::SUBSCRIPTION_REQUIRED_TEXT);
+
+            return new Response('', Response::HTTP_OK);
+        }
+
         $query = ltrim($text, '/');
         $found = $drivers->search($query, 10);
 
@@ -84,11 +102,18 @@ class TelegramWebhookController extends AbstractController
     /**
      * @param array<string, mixed> $callbackQuery
      */
-    private function handleCallbackQuery(array $callbackQuery, DriverRepository $drivers, DriverEventFeed $feed, TelegramBotApi $telegram): void
-    {
+    private function handleCallbackQuery(
+        array $callbackQuery,
+        DriverRepository $drivers,
+        DriverEventFeed $feed,
+        TelegramBotApi $telegram,
+        TelegramAuth $auth,
+        SubscriptionService $subscriptions,
+    ): void {
         $callbackId = $callbackQuery['id'] ?? null;
         $data = $callbackQuery['data'] ?? null;
         $chatId = $callbackQuery['message']['chat']['id'] ?? null;
+        $from = $callbackQuery['from'] ?? null;
 
         if (!is_string($callbackId)) {
             return; // nothing we can even acknowledge
@@ -97,10 +122,15 @@ class TelegramWebhookController extends AbstractController
         // callback_data format: "hist:<driverId>:<offset>" — chosen to stay well under
         // Telegram's 64-byte limit for callback_data.
         $parts = is_string($data) ? explode(':', $data, 3) : [];
-        if (count($parts) === 3 && $parts[0] === 'hist' && is_numeric($parts[1]) && is_numeric($parts[2]) && $chatId !== null) {
-            $driver = $drivers->find((int) $parts[1]);
-            if ($driver !== null) {
-                $this->sendEventsPage($driver, (int) $parts[2], (int) $chatId, $feed, $telegram);
+        if (count($parts) === 3 && $parts[0] === 'hist' && is_numeric($parts[1]) && is_numeric($parts[2]) && $chatId !== null && is_array($from)) {
+            // re-checked here too: a subscription can lapse between the initial
+            // card and a "load more" tap made hours or days later.
+            $telegramUser = $auth->identify($from);
+            if ($subscriptions->isActive($telegramUser)) {
+                $driver = $drivers->find((int) $parts[1]);
+                if ($driver !== null) {
+                    $this->sendEventsPage($driver, (int) $parts[2], (int) $chatId, $feed, $telegram);
+                }
             }
         }
 
