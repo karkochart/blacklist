@@ -1,10 +1,31 @@
 {% extends 'admin/base.html.twig' %}
 
 {% block admin_body %}
-<h1>Dashboard</h1>
-<ul>
-    <li>Drivers: {{ counts.drivers }}</li>
-    <li>Blacklist entries: {{ counts.blacklist_entries }}</li>
-    <li>Regions: {{ counts.regions }}</li>
-</ul>
+<h1 class="mb-4">Dashboard</h1>
+<div class="row g-3">
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="display-6">{{ counts.drivers }}</div>
+                <div class="text-muted">Drivers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="display-6">{{ counts.blacklist_entries }}</div>
+                <div class="text-muted">Blacklist entries</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="display-6">{{ counts.regions }}</div>
+                <div class="text-muted">Regions</div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

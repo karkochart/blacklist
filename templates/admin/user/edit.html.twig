@@ -1,5 +1,7 @@
 {% extends 'admin/base.html.twig' %}
 {% block admin_body %}
-    <h1>Edit user {{ user.email }}</h1>
-    {{ include('admin/user/_form.html.twig', {button_label: 'Update'}) }}
+    <h1 class="h3 mb-3">Edit user {{ user.email }}</h1>
+    <div class="card"><div class="card-body">
+        {{ include('admin/user/_form.html.twig', {button_label: 'Update'}) }}
+    </div></div>
 {% endblock %}

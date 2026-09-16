@@ -32,14 +32,18 @@ class SubscriptionRepository extends ServiceEntityRepository
     }
 
     /**
-     * Latest expiry across all of this user's grants (active or already lapsed) —
-     * the point a new grant should extend from, so stacking two grants doesn't
-     * waste the time left on the current one.
+     * The most recent grant (active or already lapsed) — the point a new grant
+     * should extend from, and the row a manual date correction applies to.
      */
-    public function latestExpiry(TelegramUser $user): ?\DateTimeImmutable
+    public function latest(TelegramUser $user): ?Subscription
     {
         $latest = $this->findBy(['telegramUser' => $user], ['expiresAt' => 'DESC'], 1);
 
-        return ($latest[0] ?? null)?->getExpiresAt();
+        return $latest[0] ?? null;
+    }
+
+    public function latestExpiry(TelegramUser $user): ?\DateTimeImmutable
+    {
+        return $this->latest($user)?->getExpiresAt();
     }
 }

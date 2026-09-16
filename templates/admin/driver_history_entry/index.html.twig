@@ -1,40 +1,44 @@
 {% extends 'admin/base.html.twig' %}
 
 {% block admin_body %}
-<div style="display:flex; justify-content:space-between; align-items:baseline;">
-    <h1>Blacklist entries <small style="color:#888;">(latest 100)</small></h1>
-    <a href="{{ path('admin_driver_history_entry_new') }}">+ New entry</a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Driver history</h1>
+    <a href="{{ path('admin_driver_history_entry_new') }}" class="btn btn-primary btn-sm">+ New entry</a>
 </div>
 
-<table style="border-collapse:collapse; width:100%;">
-    <thead>
-        <tr style="text-align:left; border-bottom:2px solid #ccc;">
-            <th style="padding:6px;">Driver</th>
-            <th style="padding:6px;">Reason</th>
-            <th style="padding:6px;">Reported by</th>
-            <th style="padding:6px;">When</th>
-            <th style="padding:6px;"></th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for entry in entries %}
-        <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:6px;">{{ entry.driver.fullName }}</td>
-            <td style="padding:6px;">{{ entry.text|length > 60 ? entry.text[:60] ~ '…' : entry.text }}</td>
-            <td style="padding:6px;">{{ entry.reporterName }}</td>
-            <td style="padding:6px;">{{ entry.occurredAt ? entry.occurredAt|date('Y-m-d') : '—' }}</td>
-            <td style="padding:6px; white-space:nowrap;">
-                <a href="{{ path('admin_driver_history_entry_edit', {id: entry.id}) }}">Edit</a>
-                <form method="post" action="{{ path('admin_driver_history_entry_delete', {id: entry.id}) }}"
-                      style="display:inline;" onsubmit="return confirm('Delete entry #{{ entry.id }}?')">
-                    <input type="hidden" name="_token" value="{{ csrf_token('delete-driver-history-entry-' ~ entry.id) }}">
-                    <button type="submit" style="border:0; background:none; color:#b91c1c; cursor:pointer;">Delete</button>
-                </form>
-            </td>
-        </tr>
-    {% else %}
-        <tr><td colspan="6" style="padding:6px;">No entries.</td></tr>
-    {% endfor %}
-    </tbody>
-</table>
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Driver</th>
+                <th>Note</th>
+                <th>Reported by</th>
+                <th>When</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for entry in page.items %}
+            <tr>
+                <td>{{ entry.driver.fullName }}</td>
+                <td>{{ entry.text|length > 60 ? entry.text[:60] ~ '…' : entry.text }}</td>
+                <td>{{ entry.reporterName }}</td>
+                <td>{{ entry.occurredAt ? entry.occurredAt|date('Y-m-d') : '—' }}</td>
+                <td class="text-end text-nowrap">
+                    <a href="{{ path('admin_driver_history_entry_edit', {id: entry.id}) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    <form method="post" action="{{ path('admin_driver_history_entry_delete', {id: entry.id}) }}"
+                          class="d-inline" onsubmit="return confirm('Delete entry #{{ entry.id }}?')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete-driver-history-entry-' ~ entry.id) }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="text-muted">No entries.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_driver_history_entry_index'}) }}
 {% endblock %}

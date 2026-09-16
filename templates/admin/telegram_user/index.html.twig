@@ -1,49 +1,66 @@
 {% extends 'admin/base.html.twig' %}
 
 {% block admin_body %}
-<h1>Telegram users <small style="color:#888;">(latest 200)</small></h1>
+<h1 class="h3 mb-3">Telegram users</h1>
 
-<table style="border-collapse:collapse; width:100%;">
-    <thead>
-        <tr style="text-align:left; border-bottom:2px solid #ccc;">
-            <th style="padding:6px;">Telegram</th>
-            <th style="padding:6px;">First seen</th>
-            <th style="padding:6px;">Subscription</th>
-            <th style="padding:6px;">Grant</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for row in rows %}
-        <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:6px;">
-                {{ row.user.displayName }}
-                <small style="color:#888;">#{{ row.user.telegramId }}</small>
-            </td>
-            <td style="padding:6px;">{{ row.user.createdAt|date('Y-m-d') }}</td>
-            <td style="padding:6px;">
-                {% if row.active %}
-                    <span style="color:#2e7d32;">active until {{ row.expiresAt|date('Y-m-d H:i') }}</span>
-                {% elseif row.expiresAt %}
-                    <span style="color:#b91c1c;">expired {{ row.expiresAt|date('Y-m-d H:i') }}</span>
-                {% else %}
-                    <span style="color:#888;">none</span>
-                {% endif %}
-            </td>
-            <td style="padding:6px; white-space:nowrap;">
-                <form method="post" action="{{ path('admin_telegram_user_grant', {id: row.user.id}) }}" style="display:inline-flex; gap:6px;">
-                    <input type="hidden" name="_token" value="{{ csrf_token('grant-subscription-' ~ row.user.id) }}">
-                    <select name="type">
-                        {% for type in types %}
-                            <option value="{{ type.value }}">{{ type.label }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" style="cursor:pointer;">Grant</button>
-                </form>
-            </td>
-        </tr>
-    {% else %}
-        <tr><td colspan="4" style="padding:6px;">No one has contacted the bot yet.</td></tr>
-    {% endfor %}
-    </tbody>
-</table>
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Telegram</th>
+                <th>First seen</th>
+                <th>Subscription</th>
+                <th>Grant</th>
+                <th>Correct expiry</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+            <tr>
+                <td>
+                    {{ row.user.displayName }}
+                    <br><small class="text-muted">#{{ row.user.telegramId }}</small>
+                </td>
+                <td>{{ row.user.createdAt|date('Y-m-d') }}</td>
+                <td>
+                    {% if row.active %}
+                        <span class="badge text-bg-success">active until {{ row.subscription.expiresAt|date('Y-m-d H:i') }}</span>
+                    {% elseif row.subscription %}
+                        <span class="badge text-bg-danger">expired {{ row.subscription.expiresAt|date('Y-m-d H:i') }}</span>
+                    {% else %}
+                        <span class="badge text-bg-secondary">none</span>
+                    {% endif %}
+                </td>
+                <td class="text-nowrap">
+                    <form method="post" action="{{ path('admin_telegram_user_grant', {id: row.user.id}) }}" class="d-flex gap-1">
+                        <input type="hidden" name="_token" value="{{ csrf_token('grant-subscription-' ~ row.user.id) }}">
+                        <select name="type" class="form-select form-select-sm" style="width: auto;">
+                            {% for type in types %}
+                                <option value="{{ type.value }}">{{ type.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">Grant</button>
+                    </form>
+                </td>
+                <td class="text-nowrap">
+                    {% if row.subscription %}
+                        <form method="post" action="{{ path('admin_telegram_user_set_expiry', {id: row.user.id}) }}" class="d-flex gap-1">
+                            <input type="hidden" name="_token" value="{{ csrf_token('set-expiry-' ~ row.user.id) }}">
+                            <input type="datetime-local" name="expiresAt" class="form-control form-control-sm"
+                                   value="{{ row.subscription.expiresAt|date('Y-m-d\\TH:i') }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">Save</button>
+                        </form>
+                    {% else %}
+                        <span class="text-muted small">grant first</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" class="text-muted">No one has contacted the bot yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{{ include('admin/_load_more.html.twig', {page: page, route: 'admin_telegram_user_index'}) }}
 {% endblock %}

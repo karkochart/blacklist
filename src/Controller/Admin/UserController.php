@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
@@ -26,10 +27,10 @@ final class UserController extends AbstractController
     }
 
     #[Route('', name: 'admin_user_index', methods: ['GET'])]
-    public function index(UserRepository $users): Response
+    public function index(Request $request, UserRepository $users, LoadMorePaginator $paginator): Response
     {
         return $this->render('admin/user/index.html.twig', [
-            'users' => $users->findBy([], ['email' => 'ASC']),
+            'page' => $paginator->paginate($users, $request, ['email' => 'ASC']),
         ]);
     }
 

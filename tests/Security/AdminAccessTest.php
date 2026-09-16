@@ -107,7 +107,7 @@ final class AdminAccessTest extends WebTestCase
 
         self::assertResponseRedirects('/login');
         $this->client->followRedirect();
-        self::assertSelectorExists('.error');
+        self::assertSelectorExists('.alert-danger');
     }
 
     public function testRightCredentialsReachAdmin(): void

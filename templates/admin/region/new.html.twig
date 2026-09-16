@@ -1,5 +1,7 @@
 {% extends 'admin/base.html.twig' %}
 {% block admin_body %}
-    <h1>New region</h1>
-    {{ include('admin/region/_form.html.twig', {button_label: 'Create'}) }}
+    <h1 class="h3 mb-3">New region</h1>
+    <div class="card"><div class="card-body">
+        {{ include('admin/region/_form.html.twig', {button_label: 'Create'}) }}
+    </div></div>
 {% endblock %}

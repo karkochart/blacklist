@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\Driver;
 use App\Form\DriverType;
 use App\Repository\DriverRepository;
@@ -20,10 +21,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class DriverController extends AbstractController
 {
     #[Route('', name: 'admin_driver_index', methods: ['GET'])]
-    public function index(DriverRepository $drivers): Response
+    public function index(Request $request, DriverRepository $drivers, LoadMorePaginator $paginator): Response
     {
         return $this->render('admin/driver/index.html.twig', [
-            'drivers' => $drivers->findBy([], ['id' => 'DESC']),
+            'page' => $paginator->paginate($drivers, $request, ['id' => 'DESC']),
         ]);
     }
 

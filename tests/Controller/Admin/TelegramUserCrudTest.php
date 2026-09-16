@@ -86,6 +86,28 @@ final class TelegramUserCrudTest extends WebTestCase
         self::assertSame('admin@test.local', $subscription->getGrantedBy()?->getEmail());
     }
 
+    public function testSetExpiryCorrectsTheDateOfTheLatestSubscription(): void
+    {
+        $this->client->request('GET', '/admin/telegram-users');
+        $this->client->submitForm('Grant', ['type' => 'daily']);
+
+        $this->client->request('GET', '/admin/telegram-users');
+        $this->client->submitForm('Save', ['expiresAt' => '2026-12-31T23:59']);
+
+        self::assertResponseRedirects('/admin/telegram-users');
+
+        $subscription = $this->em->getRepository(Subscription::class)->findOneBy([]);
+        self::assertSame('2026-12-31 23:59', $subscription->getExpiresAt()->format('Y-m-d H:i'));
+    }
+
+    public function testSetExpiryFormIsHiddenWithoutAnExistingSubscription(): void
+    {
+        // no correction form is rendered when there's nothing to correct yet
+        $this->client->request('GET', '/admin/telegram-users');
+
+        self::assertSelectorNotExists('input[name="expiresAt"]');
+    }
+
     public function testNonAdminCannotAccess(): void
     {
         $user = (new User())->setEmail('plain@test.local')->setName('Plain');

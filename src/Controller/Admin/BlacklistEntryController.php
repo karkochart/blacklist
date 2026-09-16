@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\BlacklistEntry;
 use App\Entity\User;
 use App\Form\BlacklistEntryType;
@@ -20,10 +21,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class BlacklistEntryController extends AbstractController
 {
     #[Route('', name: 'admin_blacklist_entry_index', methods: ['GET'])]
-    public function index(BlacklistEntryRepository $entries): Response
+    public function index(Request $request, BlacklistEntryRepository $entries, LoadMorePaginator $paginator): Response
     {
         return $this->render('admin/blacklist_entry/index.html.twig', [
-            'entries' => $entries->findBy([], ['id' => 'DESC'], 100),
+            'page' => $paginator->paginate($entries, $request, ['id' => 'DESC']),
         ]);
     }
 

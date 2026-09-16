@@ -1,5 +1,7 @@
 {% extends 'admin/base.html.twig' %}
 {% block admin_body %}
-    <h1>Edit blacklist entry #{{ driverHistoryEntry.id }}</h1>
-    {{ include('admin/driver_history_entry/_form.html.twig', {button_label: 'Update'}) }}
+    <h1 class="h3 mb-3">Edit driver history entry #{{ driverHistoryEntry.id }}</h1>
+    <div class="card"><div class="card-body">
+        {{ include('admin/driver_history_entry/_form.html.twig', {button_label: 'Update'}) }}
+    </div></div>
 {% endblock %}

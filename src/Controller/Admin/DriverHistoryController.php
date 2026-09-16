@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\DriverHistoryEntry;
 use App\Entity\User;
 use App\Form\DriverHistoryEntryType;
@@ -20,10 +21,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class DriverHistoryController extends AbstractController
 {
     #[Route('', name: 'admin_driver_history_entry_index', methods: ['GET'])]
-    public function index(DriverHistoryEntryRepository $driverHistoryEntryRepository): Response
+    public function index(Request $request, DriverHistoryEntryRepository $driverHistoryEntryRepository, LoadMorePaginator $paginator): Response
     {
         return $this->render('admin/driver_history_entry/index.html.twig', [
-            'entries' => $driverHistoryEntryRepository->findBy([], ['id' => 'DESC']),
+            'page' => $paginator->paginate($driverHistoryEntryRepository, $request, ['id' => 'DESC']),
         ]);
     }
 

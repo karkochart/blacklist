@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\Region;
 use App\Form\RegionType;
 use App\Repository\RegionRepository;
@@ -19,10 +20,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class RegionController extends AbstractController
 {
     #[Route('', name: 'admin_region_index', methods: ['GET'])]
-    public function index(RegionRepository $regions): Response
+    public function index(Request $request, RegionRepository $regions, LoadMorePaginator $paginator): Response
     {
         return $this->render('admin/region/index.html.twig', [
-            'regions' => $regions->findBy([], ['code' => 'ASC']),
+            'page' => $paginator->paginate($regions, $request, ['code' => 'ASC']),
         ]);
     }
 

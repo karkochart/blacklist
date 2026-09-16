@@ -9,9 +9,11 @@ use App\Repository\SubscriptionRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * One granted period of access. Immutable once created — extending access means
- * granting another one, not editing this row, so the grant history stays intact
- * (needed later once this is driven by real payments, not an admin click).
+ * One granted period of access. Normal top-ups create a new row (see
+ * SubscriptionService::grant()) so the grant history stays intact. expiresAt is
+ * still directly correctable from the admin panel for the odd manual fix
+ * (wrong date typed in, a complaint, a refund) — that's an explicit exception
+ * to "immutable", not the everyday path.
  */
 #[ORM\Entity(repositoryClass: SubscriptionRepository::class)]
 class Subscription
@@ -81,6 +83,13 @@ class Subscription
     public function getExpiresAt(): \DateTimeImmutable
     {
         return $this->expiresAt;
+    }
+
+    public function setExpiresAt(\DateTimeImmutable $expiresAt): static
+    {
+        $this->expiresAt = $expiresAt;
+
+        return $this;
     }
 
     public function getGrantedBy(): ?User

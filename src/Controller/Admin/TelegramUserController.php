@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Admin\LoadMorePaginator;
 use App\Entity\TelegramUser;
 use App\Entity\User;
 use App\Enum\SubscriptionType;
 use App\Repository\SubscriptionRepository;
 use App\Repository\TelegramUserRepository;
 use App\Service\SubscriptionService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,19 +23,23 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class TelegramUserController extends AbstractController
 {
     #[Route('', name: 'admin_telegram_user_index', methods: ['GET'])]
-    public function index(TelegramUserRepository $telegramUsers, SubscriptionRepository $subscriptions): Response
+    public function index(Request $request, TelegramUserRepository $telegramUsers, SubscriptionRepository $subscriptions, LoadMorePaginator $paginator): Response
     {
+        $page = $paginator->paginate($telegramUsers, $request, ['id' => 'DESC']);
+
         $rows = [];
-        foreach ($telegramUsers->findBy([], ['id' => 'DESC'], 200) as $telegramUser) {
+        foreach ($page->items as $telegramUser) {
+            $subscription = $subscriptions->latest($telegramUser);
             $rows[] = [
                 'user' => $telegramUser,
-                'expiresAt' => $subscriptions->latestExpiry($telegramUser),
+                'subscription' => $subscription,
                 'active' => $subscriptions->hasActiveSubscription($telegramUser),
             ];
         }
 
         return $this->render('admin/telegram_user/index.html.twig', [
             'rows' => $rows,
+            'page' => $page,
             'types' => SubscriptionType::cases(),
         ]);
     }
@@ -62,6 +68,44 @@ final class TelegramUserController extends AbstractController
             $type->label(),
             $telegramUser->getDisplayName(),
             $subscription->getExpiresAt()->format('Y-m-d H:i'),
+        ));
+
+        return $this->redirectToRoute('admin_telegram_user_index');
+    }
+
+    /**
+     * Manual correction of the latest grant's expiry — for the odd typo, refund,
+     * or complaint. Everyday top-ups go through grant() above instead.
+     */
+    #[Route('/{id}/set-expiry', name: 'admin_telegram_user_set_expiry', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function setExpiry(Request $request, TelegramUser $telegramUser, SubscriptionRepository $subscriptions, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('set-expiry-' . $telegramUser->getId(), $request->getPayload()->getString('_token'))) {
+            return $this->redirectToRoute('admin_telegram_user_index');
+        }
+
+        $subscription = $subscriptions->latest($telegramUser);
+        if ($subscription === null) {
+            $this->addFlash('error', sprintf('%s has no subscription to correct yet — grant one first.', $telegramUser->getDisplayName()));
+
+            return $this->redirectToRoute('admin_telegram_user_index');
+        }
+
+        $raw = $request->getPayload()->getString('expiresAt');
+        $expiresAt = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $raw) ?: null;
+        if ($expiresAt === null) {
+            $this->addFlash('error', 'Invalid date.');
+
+            return $this->redirectToRoute('admin_telegram_user_index');
+        }
+
+        $subscription->setExpiresAt($expiresAt);
+        $em->flush();
+
+        $this->addFlash('success', sprintf(
+            'Дату підписки для %s змінено на %s.',
+            $telegramUser->getDisplayName(),
+            $expiresAt->format('Y-m-d H:i'),
         ));
 
         return $this->redirectToRoute('admin_telegram_user_index');
