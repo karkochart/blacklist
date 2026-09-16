@@ -7,17 +7,19 @@ namespace App\Form;
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
-use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Self-service editing of one's own account. Deliberately narrower than
  * UserType: no roles field — granting/revoking your own ROLE_ADMIN from your
  * own profile page is a footgun, not a feature. Role changes stay in
  * /admin/users, done by another admin.
+ *
+ * Password changes live on their own page (ChangePasswordType) — that flow
+ * needs the current password re-entered and a confirmation field, neither of
+ * which belongs mixed into "edit my name and email".
  */
 final class ProfileType extends AbstractType
 {
@@ -25,13 +27,7 @@ final class ProfileType extends AbstractType
     {
         $builder
             ->add('email', EmailType::class)
-            ->add('name', TextType::class)
-            ->add('plainPassword', PasswordType::class, [
-                'mapped' => false, // not a User property — hashed in the controller
-                'required' => false,
-                'help' => 'Leave blank to keep the current password.',
-                'constraints' => [new Assert\Length(min: 8, max: 4096)],
-            ]);
+            ->add('name', TextType::class);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class ProfileCrudTest extends WebTestCase
+final class ChangePasswordCrudTest extends WebTestCase
 {
     private KernelBrowser $client;
     private EntityManagerInterface $em;
@@ -47,38 +47,59 @@ final class ProfileCrudTest extends WebTestCase
         $this->client->loginUser($this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']));
     }
 
-    public function testProfileShowsCurrentUsersOwnData(): void
+    private function submit(string $current, string $new, ?string $repeat = null): void
     {
-        $crawler = $this->client->request('GET', '/admin/profile');
-
-        self::assertResponseIsSuccessful();
-        self::assertSame('admin@test.local', $crawler->filter('input[name="profile[email]"]')->attr('value'));
-        self::assertSame('Karen', $crawler->filter('input[name="profile[name]"]')->attr('value'));
+        $this->client->request('GET', '/admin/profile/password');
+        $this->client->submitForm('Change password', [
+            'change_password[currentPassword]' => $current,
+            'change_password[plainPassword][first]' => $new,
+            'change_password[plainPassword][second]' => $repeat ?? $new,
+        ]);
     }
 
-    public function testUpdatingNameAndEmailWithoutTouchingPassword(): void
+    public function testCorrectCurrentPasswordAndMatchingNewOnesSucceed(): void
     {
-        $this->client->request('GET', '/admin/profile');
-        $this->client->submitForm('Save', [
-            'profile[email]' => 'karen@test.local',
-            'profile[name]' => 'Karen K.',
-        ]);
+        $this->submit('old-password', 'brand-new-password');
 
         self::assertResponseRedirects('/admin/profile');
 
         $this->em->clear();
-        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'karen@test.local']);
-        self::assertNotNull($user);
-        self::assertSame('Karen K.', $user->getName());
-        self::assertTrue($this->hasher->isPasswordValid($user, 'old-password'), 'password must be untouched');
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']);
+        self::assertTrue($this->hasher->isPasswordValid($user, 'brand-new-password'));
+        self::assertFalse($this->hasher->isPasswordValid($user, 'old-password'));
     }
 
-    public function testProfileFormHasNoPasswordField(): void
+    public function testWrongCurrentPasswordIsRejected(): void
     {
-        // password changes moved to their own page — see ChangePasswordCrudTest
-        $crawler = $this->client->request('GET', '/admin/profile');
+        $this->submit('totally-wrong', 'brand-new-password');
 
-        self::assertCount(0, $crawler->filter('input[name="profile[plainPassword]"]'));
+        self::assertResponseIsUnprocessable();
+
+        $this->em->clear();
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']);
+        self::assertTrue($this->hasher->isPasswordValid($user, 'old-password'), 'rejected submission must not change the password');
+    }
+
+    public function testMismatchedNewPasswordsAreRejected(): void
+    {
+        $this->submit('old-password', 'brand-new-password', repeat: 'something-else');
+
+        self::assertResponseIsUnprocessable();
+
+        $this->em->clear();
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']);
+        self::assertTrue($this->hasher->isPasswordValid($user, 'old-password'));
+    }
+
+    public function testTooShortNewPasswordIsRejected(): void
+    {
+        $this->submit('old-password', 'short');
+
+        self::assertResponseIsUnprocessable();
+
+        $this->em->clear();
+        $user = $this->em->getRepository(User::class)->findOneBy(['email' => 'admin@test.local']);
+        self::assertTrue($this->hasher->isPasswordValid($user, 'old-password'));
     }
 
     public function testNonAdminCannotAccess(): void
@@ -89,7 +110,7 @@ final class ProfileCrudTest extends WebTestCase
         $this->em->flush();
 
         $this->client->loginUser($user);
-        $this->client->request('GET', '/admin/profile');
+        $this->client->request('GET', '/admin/profile/password');
 
         self::assertResponseStatusCodeSame(403);
     }
