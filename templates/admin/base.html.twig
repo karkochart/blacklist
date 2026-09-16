@@ -28,7 +28,11 @@
                 <li class="nav-item"><a class="nav-link" href="{{ path('admin_telegram_user_index') }}">Telegram</a></li>
             </ul>
             <span class="navbar-text text-light-emphasis">
-                {{ app.user ? app.user.name : 'guest' }} ·
+                {% if app.user %}
+                    <a class="link-light" href="{{ path('admin_profile') }}">{{ app.user.name }}</a> ·
+                {% else %}
+                    guest ·
+                {% endif %}
                 <a class="link-light" href="{{ path('app_logout') }}">Logout</a>
             </span>
         </div>
