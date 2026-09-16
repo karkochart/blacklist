@@ -19,7 +19,9 @@ final class DriverType extends AbstractType
     {
         $builder
             ->add('firstName', TextType::class)
-            ->add('middleName', TextType::class)
+            ->add('middleName', TextType::class, [
+                'required' => false, // nullable on Driver — not everyone has a patronymic on record
+            ])
             ->add('lastName', TextType::class)
             ->add('region', EntityType::class, [
                 'class' => Region::class,
@@ -27,6 +29,7 @@ final class DriverType extends AbstractType
             ])
             ->add('birthDate', DateType::class, [
                 'widget' => 'single_text',
+                'required' => false, // nullable on Driver — often unknown, especially from the xlsx import
             ]);
     }
 
